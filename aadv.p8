@@ -149,7 +149,7 @@ function plu(p)
 			-- p.y=coly\8*8-1
 			p.dir=d>0 and 4 or -4
 			p.land=true
-			p.repair = not fget(colc,3)
+			p.repair=not fget(colc,3)
 			p.smoke=false
 			p.crash=false
 			if (not oland) sfx(3)
@@ -201,9 +201,6 @@ function plu(p)
 		end
 		p.f+=0.005
 		if (p.f>1) p.f=1
-		for k,v in pairs(pl) do
-			safe[k]=v
-		end
 	end
 	if tm%3==0 and
 		not p.land and
@@ -233,7 +230,7 @@ function plu(p)
 	tm%3==0 and not p.turn then
 		if btn(2) and
 	 	abs(p.dir)<5 and p.y>=8 then
-			p.dir+=d
+   if (t>=0.3 or abs(p.dir)<2) p.dir+=d
 		elseif btn(3) and
  		abs(p.dir)>1 then
 			p.dir-=d
@@ -852,7 +849,7 @@ function help(x,y)
 	print("⬆️⬇️⬅️➡️-turning",x+32,y+52,7)
 	print("🅾️❎-throttle",x+38,y+58)
 	print("hugeping presents",30,0)
-	print("v1.1",112,122)
+	print("v1.2",112,122)
 end
 
 function _draw()
@@ -1219,3 +1216,4 @@ __music__
 00 080c0d44
 00 08420d0e
 02 08420d0e
+
