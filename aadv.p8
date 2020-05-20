@@ -11,9 +11,9 @@ pspr={
 	{3,9,9,1/16},--/
 	{5,9,9,1/8},--//
 
- {7,9,9,0},
- {9,9,9,0},
- {11,9,9,0},
+	{7,9,9,0},
+	{9,9,9,0},
+	{11,9,9,0},
 }
 
 turnl={6,7,8,-7,-6,-3}
@@ -25,14 +25,14 @@ function alim(p,m)
 	if p>0 then
 		if (abs(p)>m) return m
 	else
-	 if (abs(p)>m) return -m
+		if (abs(p)>m) return -m
 	end
 	return p
 end
 
 function axnorm(x)
 	if (x<0) x+=768*8
-	if (x>=768*8) x=x%(768*8) 
+	if (x>=768*8) x=x%(768*8)
 	return x
 end
 
@@ -43,13 +43,13 @@ function xnorm(d)
 end
 
 function cam(p)
- local d=xnorm(sx-rsx)
- d=alim(d,2)
- sx-=d
- if ending then
+	local d=xnorm(sx-rsx)
+	d=alim(d,2)
+	sx-=d
+	if ending then
 		rsx=0
 		return
- end
+	end
 	if p.dir>0 then
 		rsx=p.x+32
 	else
@@ -58,22 +58,22 @@ function cam(p)
 end
 
 function mksafe()
-	 if safe and abs(xnorm(plane.x-safe.x)) < 64 then
-			return
-	 end
-	 safe={}
-	 for k,v in pairs(plane) do
-			safe[k]=v
-	 end
-	 safe.f=1
+	if safe and abs(xnorm(plane.x-safe.x)) < 64 then
+		return
+	end
+	safe={}
+	for k,v in pairs(plane) do
+		safe[k]=v
+	end
+	safe.f=1
 end
 
 function restore()
-	 plane={}
-	 for k,v in pairs(safe) do
-			plane[k]=v
-	 end
-	 sx=plane.x
+	plane={}
+	for k,v in pairs(safe) do
+		plane[k]=v
+	end
+	sx=plane.x
 end
 
 function plu(p)
@@ -83,48 +83,47 @@ function plu(p)
 	if p.restore and tm%10==0 then
 		p.restore-=1
 		if (p.restore==0 and planes>0) restore()
-	 if p.restore==0 and planes==0 then
-	  gameover=1
-		 music(0)
-	 end
+		if p.restore==0 and planes==0 then
+			gameover=1
+			music(0)
+		end
 	end
- p.x=xnorm(p.x)
- rsx,sx=xnorm(rsx),xnorm(sx)
+	p.x=xnorm(p.x)
+	rsx,sx=xnorm(rsx),xnorm(sx)
 
 	local d=plane.dir>0 and 1 or -1
 
 	if p.crash and not p.stp then
 		if (p.smoke and (tm%15==0)) smk(p.x,p.y)
 
-	 if p.t>0 then p.t-=0.01 end
-	 local c=mm(p.x\8,(p.y)\8)
-	 if c==0 or fget(c,0) then
+		if p.t>0 then p.t-=0.01 end
+		local c=mm(p.x\8,(p.y)\8)
+		if c==0 or fget(c,0) then
 			p.y+=0
-	 else
-	  if not fget(c,2) then 
-	 		mkexp(p.x,p.y)
-	 	else
-	 	 p.y+=2
-	   p.sink=1
-	   sfx(4) 	 
-	 	end
-	 	planes-=1
- 		p.stp=true
-	  p.smoke=false
-	  p.restore=4
-  end
- end	
- if p.sink then
+		else
+			if not fget(c,2) then
+				mkexp(p.x,p.y)
+			else
+				p.y+=2
+				p.sink=1
+				sfx(4)
+			end
+			planes-=1
+			p.stp=true
+			p.smoke=false
+			p.restore=4
+		end
+	end
+	if p.sink then
 		p.y=p.y+0.1
 		if p.sink>6 then
-		 p.sink=false
+			p.sink=false
 		end
- end
+	end
 	local o=pspr[abs(p.dir)]
 	local a=o[4]
 	if (d<0) a=0.5-a
 	local t=p.t^0.5
---	printh(p.dir)
 	if (abs(p.dir)==1) t=1
 	if (abs(p.dir)==2 and t<0.5) t=0.5
 	if p.turn then
@@ -134,66 +133,60 @@ function plu(p)
 		p.t=p.t-0.01
 		if (p.t<0)p.t=0
 	else
-	 p.f-=p.t*0.001
-	 if (p.f<0)p.f=0
+		p.f-=p.t*0.001
+		if (p.f<0)p.f=0
 	end
 	local dx=1*cos(a)*(t)
 	local dy=1*sin(a)*(t)+(1-t)
--- local dv=(dx*dx+dy*dy)^0.5
---	dx=dv*cos(a)
---	dy=dv*sin(a)
- local colx=ceil(p.x+dx)
- local coly=ceil(p.y+dy)
- local colc=collision(colx,coly)
--- printh("colc:"..tostr(colc).." "..tostr(colx).." "..tostr(coly))
- local oland=p.land
- if (not p.turn) p.land=false
- if not p.stp and not p.land 
-  and colc then
-  if fget(colc,1) and abs(p.dir)>2 and abs(p.dir)<5 then
-   -- p.y=coly\8*8-1
-  	p.dir=d>0 and 4 or -4
-  	p.land=true
+	local colx=ceil(p.x+dx)
+	local coly=ceil(p.y+dy)
+	local colc=collision(colx,coly)
+	local oland=p.land
+	if (not p.turn) p.land=false
+	if not p.stp and not p.land
+	and colc then
+		if fget(colc,1) and abs(p.dir)>2 and abs(p.dir)<5 then
+			-- p.y=coly\8*8-1
+			p.dir=d>0 and 4 or -4
+			p.land=true
 			p.repair = not fget(colc,3)
-	  p.smoke=false
-	  p.crash=false
-  	if (not oland) sfx(3)
-  else
- 		p.crash=1
+			p.smoke=false
+			p.crash=false
+			if (not oland) sfx(3)
+		else
+			p.crash=1
 			p.dir=1
 			if (d<0) p.dir=-1
 			p.turn=false
-	--		printh(tostr(colx).." "..tostr(coly))
---	  os.exit()
 		end
- end
+	end
 
- if not p.stp then
+	if not p.stp then
 		p.x+=dx
 		if (not p.land) p.y+=dy
 	end
 	if p.turn and tm%8==0 then
-  if p.turn==1 and abs(p.dir)!=3 then
-   if (abs(p.dir)<=2) d=-d
+		if p.turn==1 and abs(p.dir)!=3 then
+			if (abs(p.dir)<=2) d=-d
 			p.dir-=d
-  else
-		 p.turn+=1
-	  if p.turn>#turn then
-   	p.turn=false
-  	else
-  	 p.dir=turn[p.turn]
+		else
+			p.turn+=1
+			if p.turn>#turn then
+				p.turn=false
+			else
+				p.dir=turn[p.turn]
 			end
 		end
 	end
 	if (p.repair and p.t==0 and not p.crash) then
-	 if p.land then
-		 if (p.x<128 and p.x>-128 and friends>0) then
+		if p.land then
+			if (p.x<128 and p.x>-128 and friends>0) then
 				ending=1
 				friends=0
 				frnds={}
-		  music(1)
+				music(1)
 				frnd(p.x\8+1,6)
-		 elseif ending then
+			elseif ending then
 				ending+=1
 				if ending == 30 then
 					frnd(p.x\8+1,6)
@@ -202,33 +195,33 @@ function plu(p)
 					mset(5,6,213)
 					if (tm%20==0) smk(5*8+10,64+6*8,-0.3)
 				end
-		 else
-	 		mksafe()
-	 	end
-	 end
+			else
+				mksafe()
+			end
+		end
 		p.f+=0.005
 		if (p.f>1) p.f=1
-	 for k,v in pairs(pl) do
+		for k,v in pairs(pl) do
 			safe[k]=v
-	 end
+		end
 	end
 	if tm%3==0 and
 		not p.land and
-		not p.turn and 
+		not p.turn and
 		(t<0.3 or p.y<8) and
  	abs(plane.dir)>1 then
- 	plane.dir-=d
- end
- if (p.crash or ending) return
+		plane.dir-=d
+	end
+	if (p.crash or ending) return
 	if not p.turn and
 		((btn(0) and p.dir>0) or
-		(btn(1) and p.dir<0)) then
-	  turn=d>0 and turnl or turnr
+			(btn(1) and p.dir<0)) then
+			turn=d>0 and turnl or turnr
 			p.turn=1
 	end
 	if p.f>0 then
 		if btn(4) or (btn(1) and d>0) or
-		 (btn(0) and d<0) then
+		(btn(0) and d<0) then
 			p.t+=0.02
 		elseif btn(5) then
 			p.t-=0.02
@@ -236,32 +229,32 @@ function plu(p)
 	end
 	if (p.t>1) p.t=1
 	if (p.t<0) p.t=0
-	if not p.land and 
-		tm%3==0 and not p.turn then
-	 if btn(2) and 
+	if not p.land and
+	tm%3==0 and not p.turn then
+		if btn(2) and
 	 	abs(p.dir)<5 and p.y>=8 then
- 		p.dir+=d
- 	elseif btn(3) and 
+			p.dir+=d
+		elseif btn(3) and
  		abs(p.dir)>1 then
- 	 p.dir-=d
- 	end
- end
+			p.dir-=d
+		end
+	end
 end
 
 function pld(p)
-  local fl=false
-  local n=abs(p.dir)
-  if (p.dir<0) fl=true
-		local s=pspr[n]
-		local w=flr(tm/(4-p.t^0.5*3)%2)
-  if (p.crash) w=0
-	 if(w==1 and p.t>0.01)sfx(0)
-		local x=s[2]
-		if (fl) x=16-x
-		spr(s[1]+w*32,
-			tos(p.x-x),
-			p.y-s[3],
-			2,2,fl)
+	local fl=false
+	local n=abs(p.dir)
+	if (p.dir<0) fl=true
+	local s=pspr[n]
+	local w=flr(tm/(4-p.t^0.5*3)%2)
+	if (p.crash) w=0
+	if(w==1 and p.t>0.01)sfx(0)
+	local x=s[2]
+	if (fl) x=16-x
+	spr(s[1]+w*32,
+	    tos(p.x-x),
+	    p.y-s[3],
+	    2,2,fl)
 end
 
 function cld(r,x,y)
@@ -270,19 +263,24 @@ function cld(r,x,y)
 	local x2=0
 	x,y=0,0
 	for i=1,rnd(2)+2 do
-	 x+=r1
-	 x2-=r2
-	 r1=r1*(0.5+rnd(0.5))
-	 r2=r2*(0.5+rnd(0.5))
+		x+=r1
+		x2-=r2
+		if i==1 then
+			r1=r1*(0.8+rnd(0.2))
+			r2=r2*(0.8+rnd(0.2))
+		else
+			r1=r1*(0.5+rnd(0.5))
+			r2=r2*(0.5+rnd(0.5))
+		end
 		add(c,{x,y,r1,rnd(1)})
 		add(c,{x2,y,r2,rnd(1)})
 	end
-	c.d=(flr(rnd(2)) == 1) and 1 or -1  
- c.f=(flr(rnd(3)) == 1) and true or false
- if (c.f and c.y<r)c.y=r+8
- if c.f and abs(xnorm(c.x-plane.x)) < 128 then
-   c.f=false
- end
+	c.d=(flr(rnd(2)) == 1) and 1 or -1
+	c.f=(flr(rnd(3)) == 1) and true or false
+	if (c.f and c.y<r)c.y=r+8
+	if c.f and abs(xnorm(c.x-plane.x)) < 128 then
+		c.f=false
+	end
 	return c
 end
 
@@ -291,10 +289,10 @@ function tos(x)
 end
 
 function flash(x,y,l)
- if l<=0 then
+	if l<=0 then
 		return
- end
- l-=1
+	end
+	l-=1
 	local c=mm(x\8,y\8)
 	if c!=0 or y>128 then
 		return
@@ -302,57 +300,57 @@ function flash(x,y,l)
 	local dy=16+rnd(16)
 	local dx=rnd(32)-16
 	if hitbox(plane.x,plane.y,
-		x-16,y,32,32) then
+		  x-16,y,32,32) then
 		dx=plane.x-x
 		dy=plane.y-y
 		l=0
 		if not plane.land then
- 	 plane.crash=1
- 	 plane.smoke=true
- 	end
+			plane.crash=1
+			plane.smoke=true
+		end
 	elseif hitbox(plane.x,plane.y,x,y,dx,dy) then
-	 if not plane.land then
- 	 plane.crash=1
-  	plane.smoke=true
+		if not plane.land then
+			plane.crash=1
+			plane.smoke=true
 		end
 	end
 
 	fillp(0xffff)
 	line(tos(x),y,tos(x+dx),y+dy,0x77)
- flash(x+dx,y+dy,l)
+	flash(x+dx,y+dy,l)
 end
 
 function cldd(c)
 	local x=tos(c.x)
- if x<-64 or x>192 then
- 	return
- end
- fillp(0b0101101001011010.1)
+	if x<-64 or x>192 then
+		return
+	end
+	fillp(0b0101101001011010.1)
 	if c.flash then
-  if (c.flash==1)sfx(5)
+		if (c.flash==1)sfx(5)
 		c.flash+=1
-		local cl=c[flr(rnd(#c))+1] 
-	 flash(c.x+cl[1],c.y+cl[2],#cl)
+		local cl=c[flr(rnd(#c))+1]
+		flash(c.x+cl[1],c.y+cl[2],#cl)
 		if (c.flash>4) c.flash=false
-		
-	end		
+
+	end
 
 	for v in all(c) do
 		circfill(x+v[1],
-			c.y+v[2]+sin(v[4])*v[3]\8,
-			v[3],c.flash and 0xff or c.f and 0xc5 or 0xc7)
+			 c.y+v[2]+sin(v[4])*v[3]\8,
+			 v[3],c.flash and 0xff or c.f and 0xc5 or 0xc7)
 	end
 end
 
 function cldm(c)
- local seen
+	local seen
 	c.x+=c.d*rnd(0.5)
 	c.x=xnorm(c.x)
 	for v in all(c) do
 		v[4]+=rnd(0.01)
-	end	
-	if c.f and not c.flash 
-	 and tm%30==0 and rnd(100)<30 then
+	end
+	if c.f and not c.flash
+	and tm%30==0 and rnd(100)<30 then
 		c.flash=1
 	end
 	return seen
@@ -362,11 +360,11 @@ exp={}
 smks={}
 
 function smkd(v)
-		local x=tos(v.x)
-  if x<-16 or x>132 then
-			return
-  end
-  if (v.r>2) circ(x-4,v.y,v.r-1,0)
+	local x=tos(v.x)
+	if x<-16 or x>132 then
+		return
+	end
+	if (v.r>2) circ(x-4,v.y,v.r-1,0)
 end
 
 function bird(x,y)
@@ -378,51 +376,51 @@ function bal(x,y)
 end
 function bald(v)
 	local x=tos(v.x)
- if x<-16 or x>132 then
+	if x<-16 or x>132 then
 		return
- end
- spr(207,x+4,v.y-8,1,2)
+	end
+	spr(207,x+4,v.y-8,1,2)
 end
 
 function birdd(v)
-		local x=tos(v.x)
-  if x<-16 or x>132 then
-			return
-  end
-		spr(v.spr+16*flr(tm/4%2),tos(v.x-4),v.y-4)
+	local x=tos(v.x)
+	if x<-16 or x>132 then
+		return
+	end
+	spr(v.spr+16*flr(tm/4%2),tos(v.x-4),v.y-4)
 end
 
 frnds={}
 
 function frnd(x,y)
-	add(frnds,{x=x*8-3,y=64+y*8+5,step=1})		
+	add(frnds,{x=x*8-3,y=64+y*8+5,step=1})
 end
 
 function frndm(v)
 	local a={212,228,244,228}
 	local b={244,229,244,245}
 
- if tos(v.x)<-16 or
+	if tos(v.x)<-16 or
  	tos(v.x)>140 then
- 	return true
- end
- if ending or (plane.land and 
- 	abs(xnorm(v.x-plane.x))<64) then
-  if (tm%2!=0) return true
-  if not ending and abs(xnorm(v.x-plane.x))<=2 then
-		 friends+=1
-		 sfx(6)
+		return true
+	end
+	if ending or (plane.land and
+		      abs(xnorm(v.x-plane.x))<64) then
+		if (tm%2!=0) return true
+		if not ending and abs(xnorm(v.x-plane.x))<=2 then
+			friends+=1
+			sfx(6)
 			return false
-  end
-  v.spr=b[v.step]
- 	local dx=xnorm(v.x-plane.x)>0 and -1 or 1
+		end
+		v.spr=b[v.step]
+		local dx=xnorm(v.x-plane.x)>0 and -1 or 1
 		if (ending) dx=1
 		v.x+=dx
 		if (ending and v.x>40) return
- 	v.step+=1
- 	if (v.step>4) v.step=1
+			v.step+=1
+		if (v.step>4) v.step=1
 		return true
- end	
+	end
 
 	if (tm%5==0) v.step+=1
 	if (v.step>4) v.step=1
@@ -441,95 +439,95 @@ end
 crashes={}
 
 function start()
- if (not ending) music(1)
- for v in all(crashes) do
+	if (not ending) music(1)
+	for v in all(crashes) do
 		mm(v[2],v[3],v[1])
- end
- crashes={}
+	end
+	crashes={}
 	plane={x=-18,
-		y=120,dir=4,
-		t=0,f=1,true,land=true,turn=false}
+	       y=120,dir=4,
+	       t=0,f=1,true,land=true,turn=false}
 	planes=5
 	friends=0
 	tm=0
- sun=24
- sx,sy=plane.x,64
- rsx,rsy=sx,64
+	sun=24
+	sx,sy=plane.x,64
+	rsx,rsy=sx,64
 
- clds={}
- birds={}
+	clds={}
+	birds={}
 	frnds={}
- bals={}
- 
+	bals={}
+
 	mksafe()
- frnd(126+256,6)
- for i=1,7 do
+	frnd(126+256,6)
+	for i=1,7 do
 		add(bals,bal(3*i*128+64,rnd(64)))
 		add(bals,bal(-4*i*128-64,rnd(64)))
- end
+	end
 	for i=1,32 do
 		add(clds,cld(rnd(10)+8,
-			rnd(6144)-3072,rnd(64)))
+			     rnd(6144)-3072,rnd(64)))
 	end
 	for i=1,32 do --60
 		add(birds,bird(rnd(6144)-3072,
-			rnd(64)))
+			       rnd(64)))
 	end
 end
 
 frames=0
 function movie(x,y)
-	 clip(x,y,48,48)
-		rectfill(x,y,x+48,y+48,0x11)
+	clip(x,y,48,48)
+	rectfill(x,y,x+48,y+48,0x11)
 
-		for i=0,5 do
-		 spr(89,x+i*8,y+32)
-		 spr(89,x+i*8,y+40)
-		end
-		for i=1,5 do
-		 spr(227,x+i*8,y+40)
-		end
-		spr(211,x,y+40)
-		local a={244,245,244,229}
-		spr(a[(frames%4)+1],x+54-frames,y+38)
-		frames+=1
-		if (frames==40) then
-		 frames-=1
-		end
-		clip()
+	for i=0,5 do
+		spr(89,x+i*8,y+32)
+		spr(89,x+i*8,y+40)
+	end
+	for i=1,5 do
+		spr(227,x+i*8,y+40)
+	end
+	spr(211,x,y+40)
+	local a={244,245,244,229}
+	spr(a[(frames%4)+1],x+54-frames,y+38)
+	frames+=1
+	if (frames==40) then
+		frames-=1
+	end
+	clip()
 end
 
 
 function _init()
- title=true
+	title=true
 	start()
--- movie(40,40)
+	-- movie(40,40)
 end
 
 function hitbox(x,y,xx,yy,ww,hh)
- if x>1536 then
- 	x-=1536
- 	xx-=1536
- elseif x<-1536 then
- 	x+=1536
- 	xx+=1536
- end
+	if x>1536 then
+		x-=1536
+		xx-=1536
+	elseif x<-1536 then
+		x+=1536
+		xx+=1536
+	end
 	if x>=xx and y>=yy
-	 and x<xx+ww and y<yy+hh then
+	and x<xx+ww and y<yy+hh then
 	 	return true
 	end
 end
 
 function hit(x,y,xx,yy,ww,hh)
- if x>1536 then
- 	x-=1536
- 	xx-=1536
- elseif x<-1536 then
- 	x+=1536
- 	xx+=1536
- end
+	if x>1536 then
+		x-=1536
+		xx-=1536
+	elseif x<-1536 then
+		x+=1536
+		xx+=1536
+	end
 	if x>xx-ww and y>yy-hh
-	 and x<xx+ww and y<yy+hh then
+	and x<xx+ww and y<yy+hh then
 	 	return true
 	end
 end
@@ -545,55 +543,55 @@ function smkm(v)
 end
 
 function balm(v)
- if v.crash then
+	if v.crash then
 		v.y+=v.crash
-  v.crash+=0.01
-  if mm(v.x\8,(v.y+3)\8)!=0 or v.y>128 then
-		 mkexp(v.x,v.y)
- 		return false
-  end
+		v.crash+=0.01
+		if mm(v.x\8,(v.y+3)\8)!=0 or v.y>128 then
+			mkexp(v.x,v.y)
+			return false
+		end
 		return true
- end
- if tm%1==0 then
-  v.a=alim(v.a+rnd(0.1)-0.05,1)
 	end
- local dx=cos(v.a)*rnd(0.7)
- local dy=sin(v.a)*rnd(0.7)
- if v.y+dy<=0 or mm((v.x+dx)\8,(v.y+6+dy)\8)!=0 or v.y>128 then
-  v.a=rnd(1)
- else
-  v.x+=dx
-  v.y+=dy
- end
- 
+	if tm%1==0 then
+		v.a=alim(v.a+rnd(0.1)-0.05,1)
+	end
+	local dx=cos(v.a)*rnd(0.7)
+	local dy=sin(v.a)*rnd(0.7)
+	if v.y+dy<=0 or mm((v.x+dx)\8,(v.y+6+dy)\8)!=0 or v.y>128 then
+		v.a=rnd(1)
+	else
+		v.x+=dx
+		v.y+=dy
+	end
+
 	if not plane.land and hitbox(plane.x,plane.y,
-		v.x-4,v.y-9,10,16) then
+				     v.x-4,v.y-9,10,16) then
 		plane.crash=1
-  plane.smoke=true
-	 sfx(1)
-	 mkexp(plane.x,plane.y)
-	 v.crash=0.5
- end
+		plane.smoke=true
+		sfx(1)
+		mkexp(plane.x,plane.y)
+		v.crash=0.5
+	end
 	return true
 end
 
 function birdm(v)
 	local xx,yy=v.x+v.s*cos(v.d),
-		v.y+v.s*sin(v.d)
+	v.y+v.s*sin(v.d)
 	local c=mm(xx\8,yy\8)
-	if (yy<0 or yy>128) c=1 
+	if (yy<0 or yy>128) c=1
 	if c==0 then
 		v.x,v.y=xnorm(xx),yy
 	else
-	 v.d=rnd(1)
-	 v.s=rnd(0.8)+0.4
+		v.d=rnd(1)
+		v.s=rnd(0.8)+0.4
 	end
 	if not plane.land and
-	 not plane.stp and
-		hit(v.x,v.y,plane.x,plane.y,4,4) then
+		not plane.stp and
+	hit(v.x,v.y,plane.x,plane.y,4,4) then
 		plane.crash=1
-  plane.smoke=true
-	 sfx(1)
+		plane.smoke=true
+		sfx(1)
 		return false
 	end
 	return true
@@ -602,12 +600,12 @@ end
 function expm(v)
 	v.t+=1
 	for e in all(v) do
-  local s=5/v.t
+		local s=5/v.t
 		e.x+=s*cos(e.a)
 		e.y+=s*sin(e.a)
 		e.y+=v.t/10
 	end
- if (v.t>10) return false
+	if (v.t>10) return false
 	return true
 end
 
@@ -618,60 +616,60 @@ function expd(v)
 end
 
 function _update()
- if type(title)=='number' and title<0 then
+	if type(title)=='number' and title<0 then
 		title+=1
 		if (title==0) then
 			title=false
-		 music(-1)
+			music(-1)
 		end
- end
- if title and (btnp(4) or btnp(5)) then
+	end
+	if title and (btnp(4) or btnp(5)) then
 		title=-10
 		return
- end
- if gameover then
-		 gameover+=1
 	end
- if (gameover or ending) and (btnp(4) or btnp(5)) then
-  if ending and ending<200 then
-   return
-  end
-  if (gameover and gameover<30) return		 
-		gameover=false
-	 start()
-	 title=true
+	if gameover then
+		gameover+=1
+	end
+	if (gameover or ending) and (btnp(4) or btnp(5)) then
+		if ending and ending<200 then
+			return
+		end
+		if (gameover and gameover<30) return
+			gameover=false
+		start()
+		title=true
 		ending=false
-	 return
- end
- if (tm%5==0 and sun<164 and not title) sun+=0.1
- tm+=1
- for v in all(clds) do
+		return
+	end
+	if (tm%5==0 and sun<164 and not title) sun+=0.1
+	tm+=1
+	for v in all(clds) do
 		cldm(v)
- end
- ff={}
- for v in all(frnds) do
+	end
+	ff={}
+	for v in all(frnds) do
 		if (frndm(v)) add(ff,v)
- end
- frnds=ff
- local e={}
- for v in all(exp) do
+	end
+	frnds=ff
+	local e={}
+	for v in all(exp) do
 		if (expm(v)) add(e,v)
- end
- exp=e
- local b={}
- for v in all(birds) do
+	end
+	exp=e
+	local b={}
+	for v in all(birds) do
 		if (birdm(v)) add(b,v)
- end
- birds=b
- local bb={}
- for v in all(bals) do
+	end
+	birds=b
+	local bb={}
+	for v in all(bals) do
 		if (balm(v)) add(bb,v)
- end
- bals=bb
+	end
+	bals=bb
 	local sm={}
- for v in all(smks) do
+	for v in all(smks) do
 		if (smkm(v)) add(sm,v)
- end
+	end
 	smks=sm
 	plu(plane)
 	cam(plane)
@@ -684,13 +682,13 @@ function stars(yy)
 	if #sts==0 then
 		for i=1,40 do
 			add(sts,{x=rnd(128),
-				y=rnd(128),
-				c=flr(rnd(15)+1)})
+				 y=rnd(128),
+				 c=flr(rnd(15)+1)})
 		end
 	end
 	if (not blink and tm%30==0) blink=flr(rnd(#sts))+1
- if (blink) sts[blink].b=1
-	fillp(0)	  
+	if (blink) sts[blink].b=1
+	fillp(0)
 	for v in all(sts) do
 		if (v.y<yy) pset(v.x,v.y,v.b or v.c)
 	end
@@ -699,42 +697,42 @@ function stars(yy)
 end
 
 function sky()
- fillp(0b1010010110100101)
- if sun>55 then
- 	local sl=64*(((sun-55)/55)^2)
-	 rectfill(0,0,128,sl,0x11)	
-	 rectfill(0,sl-16,128,sl-8,0xc1)	
-	 rectfill(0,sl-8,128,sl,0xc6)	
-	 stars(sl-24)
+	fillp(0b1010010110100101)
+	if sun>55 then
+		local sl=64*(((sun-55)/55)^2)
+		rectfill(0,0,128,sl,0x11)
+		rectfill(0,sl-16,128,sl-8,0xc1)
+		rectfill(0,sl-8,128,sl,0xc6)
+		stars(sl-24)
 	end
- fillp(0b1010010110100101.1)
- circfill(64,sun,12,0x0a)
+	fillp(0b1010010110100101.1)
+	circfill(64,sun,12,0x0a)
 	fillp(0xffff)
- circfill(64,sun,10,0xaa)
- fillp(0b1111111111111111)
--- rectfill(0,0,128,16,0xc1)
-	if sx<(100+128)*8  and
-	   sx>(-(100+128)*8) then
-	 rectfill(0,105,128,112,0xaa)	
-	 rectfill(0,113,128,128,0x99)
+	circfill(64,sun,10,0xaa)
+	fillp(0b1111111111111111)
+	-- rectfill(0,0,128,16,0xc1)
+	if sx<(100+128)*8 and
+	sx>(-(100+128)*8) and sun<130 then
+		rectfill(0,105,128,112,0xaa)
+		rectfill(0,113,128,128,0x99)
 	else
-  fillp(0b1010010110100101)
-	 rectfill(0,105,128,112,0xdd)	
-	 rectfill(0,113,128,128,0x1d)
- end
+		fillp(0b1010010110100101)
+		rectfill(0,105,128,112,0xdd)
+		rectfill(0,113,128,128,0x1d)
+	end
 end
 
 function hud()
 	if (title) return
- fillp(0xffff)
+		fillp(0xffff)
 
- rect(0,0,15,2,0x00)
- line(1,1,14,1,0xdd)
- line(1,1,1+ceil(13*plane.t),1,0x88)
+	rect(0,0,15,2,0x00)
+	line(1,1,14,1,0xdd)
+	line(1,1,1+ceil(13*plane.t),1,0x88)
 
- rect(0,4,15,6,0x00)
- line(1,5,14,5,0xdd)
- line(1,5,1+ceil(13*plane.f),5,0x99)
+	rect(0,4,15,6,0x00)
+	line(1,5,14,5,0xdd)
+	line(1,5,1+ceil(13*plane.f),5,0x99)
 
 	for i=1,planes do
 		spr(196,128-9*i,0)
@@ -742,8 +740,8 @@ function hud()
 	for i=1,friends do
 		spr(244,128-9*i,8)
 	end
---	print(plane.t,0,6,4)
--- print(plane.land,0,12,4)
+	--	print(plane.t,0,6,4)
+	-- print(plane.land,0,12,4)
 end
 local anims={
 	[75]={92,15},
@@ -756,17 +754,16 @@ local anims={
 	[239]={255,20},
 }
 function anim(c)
- local a=c and anims[c]
+	local a=c and anims[c]
 	if a then
-			if (tm\a[2]%2==0)return a[1]
+		if (tm\a[2]%2==0)return a[1]
 	end
 	return c
 end
 
 function mm(xc,yc,v)
---	printh("cell1:"..tostr(xc).." "..tostr(yc))
 	if (yc<8 or yc>15) return 0
- while (xc>=768) xc-=768
+	while (xc>=768) xc-=768
 	yc-=8
 	if xc<0 then
 		xc+=768
@@ -776,16 +773,15 @@ function mm(xc,yc,v)
 		xc-=128
 	end
 	if v then
-	 mset(xc,yc,v)
+		mset(xc,yc,v)
 	else
---	 printh("cell:"..tostr(xc).." "..tostr(yc))
-  local c=mget(xc,yc)
+		local c=mget(xc,yc)
 		return anim(c),c
- end
+	end
 end
 
 function mkexp(x,y)
- local e={t=0}
+	local e={t=0}
 	for i=1,rnd(3)+5 do
 		add(e,{spr=98+abs(rnd(5)),x=x,y=y,a=rnd(1)})
 	end
@@ -794,20 +790,20 @@ function mkexp(x,y)
 end
 
 function collision(x,y)
- local xx,yy=x\8,y\8
- c=mm(xx,yy)
+	local xx,yy=x\8,y\8
+	c=mm(xx,yy)
 	if (c==0) return
 	if sget((c%16)*8+x%8,
 		c\16*8+(y%8))==0 then
 		return
 	end
 	if fget(c,0) then
-	 local c,rc=mm(xx,yy)
-	 add(crashes,{rc,xx,yy})
- 	mm(xx,yy,0)
+		local c,rc=mm(xx,yy)
+		add(crashes,{rc,xx,yy})
+		mm(xx,yy,0)
 		mkexp(xx*8+4,yy*8+4)
 	end
- return c
+	return c
 end
 
 function scene(x,y,f)
@@ -819,62 +815,62 @@ function scene(x,y,f)
 	y=y\8
 	for yy=8,16 do
 		for xx=0,16 do
-   local c,rc=mm(x+xx,y+yy)
-   if (c!=0 and (not f or f==rc)) spr(c,xx*8-dx,yy*8+dy)
+			local c,rc=mm(x+xx,y+yy)
+			if (c!=0 and (not f or f==rc)) spr(c,xx*8-dx,yy*8+dy)
 		end
 	end
 end
 
 function help(x,y)
 	print("your brother is a polar",x+16,y,1)
- print("explorer. he got in trouble!",x+6,y+8)
+	print("explorer. he got in trouble!",x+6,y+8)
 	fillp(0b1010010110100101)
 	x+=3
 	y+=1
 	rectfill(x+24,y+16,x+95,y+32,0x10)
 	for i=0,8 do
-	 local c=0
-	 if (i==1)c=211
-	 if (i==7)c=243
-	 if (i>1 and i<7)c=227
+		local c=0
+		if (i==1)c=211
+		if (i==7)c=243
+		if (i>1 and i<7)c=227
 		if (c>0) spr(c,x+8*i+24,y+24)
 	end
 	for i=0,8 do
 		spr(89,x+8*i+24,y+32)
 	end
 	spr(212,x+54,y+16)
- fillp(0)
- line(27,y+15,100,y+15,6)
- line(27,y+15+24,100,y+15+24)
- line(27,y+15,27,y+15+24)
- line(100,y+15,100,y+15+24)
+	fillp(0)
+	line(27,y+15,100,y+15,6)
+	line(27,y+15+24,100,y+15+24)
+	line(27,y+15,27,y+15+24)
+	line(100,y+15,100,y+15+24)
 	if tm\15%2==1 then
-	 print("sos!",x+64,y+17,6)
+		print("sos!",x+64,y+17,6)
 	end
 	x-=3
- print("just take him home!⌂",x+22,y+43,2)
- print("⬆️⬇️⬅️➡️-turning",x+32,y+52,7)
- print("🅾️❎-throttle",x+38,y+58)
- print("hugeping presents",30,0)
-	print("v1.0",112,122)
+	print("just take him home!⌂",x+22,y+43,2)
+	print("⬆️⬇️⬅️➡️-turning",x+32,y+52,7)
+	print("🅾️❎-throttle",x+38,y+58)
+	print("hugeping presents",30,0)
+	print("v1.1",112,122)
 end
 
 function _draw()
 	cls(12)
 	sky()
- scene(sx,sy)
- for v in all(frnds) do
-	 frndd(v)
- end
- for v in all(bals) do
-	 bald(v)
- end
+	scene(sx,sy)
+	for v in all(frnds) do
+		frndd(v)
+	end
+	for v in all(bals) do
+		bald(v)
+	end
 	pld(plane)
- for v in all(birds) do
-	 birdd(v)
+	for v in all(birds) do
+		birdd(v)
 	end
 	for v in all(exp) do
-	 expd(v)
+		expd(v)
 	end
 	for v in all(clds) do
 		cldd(v)
@@ -885,14 +881,14 @@ function _draw()
 	hud()
 	scene(sx,sy,89)
 	if ending then
-		 local y=128-ending\2
-		 if (y<54)y=54
-			print("the end!",50,y,7)
+		local y=128-ending\2
+		if (y<54)y=54
+		print("the end!",50,y,7)
 	end
 	if title then
 		spr(200,36,16,7,1)
-	 print("adventure",46,28,2)
-	 help(1,40)
+		print("adventure",46,28,2)
+		help(1,40)
 	end
 	if gameover then
 		print("game over!",45,63,7)
@@ -1223,4 +1219,3 @@ __music__
 00 080c0d44
 00 08420d0e
 02 08420d0e
-
