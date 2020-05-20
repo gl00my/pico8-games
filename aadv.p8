@@ -459,8 +459,8 @@ function start()
 	mksafe()
 	frnd(126+256,6)
 	for i=1,7 do
-		add(bals,bal(3*i*128+64,rnd(64)))
-		add(bals,bal(-4*i*128-64,rnd(64)))
+		add(bals,bal(3*i*128+64,rnd(64-8)))
+		add(bals,bal(-4*i*128-64,rnd(64-8)))
 	end
 	for i=1,32 do
 		add(clds,cld(rnd(10)+8,
@@ -849,7 +849,7 @@ function help(x,y)
 	print("⬆️⬇️⬅️➡️-turning",x+32,y+52,7)
 	print("🅾️❎-throttle",x+38,y+58)
 	print("hugeping presents",30,0)
-	print("v1.2",112,122)
+	print("v1.3",112,122)
 end
 
 function _draw()
