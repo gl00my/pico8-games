@@ -467,11 +467,11 @@ function start()
 		add(bals,bal(3*i*128+64,rnd(64-8)))
 		add(bals,bal(-4*i*128-64,rnd(64-8)))
 	end
-	for i=1,32 do
+	for i=1,(easy and 24 or 32) do
 		add(clds,cld(rnd(10)+8,
 			     rnd(6144)-3072,rnd(64)))
 	end
-	for i=1,32 do --60
+	for i=1,(easy and 24 or 32) do --60
 		add(birds,bird(rnd(6144)-3072,
 			       rnd(64)))
 	end
