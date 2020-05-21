@@ -200,9 +200,9 @@ function plu(p)
 			else
 				mksafe()
 			end
+			p.f+=0.005
+			if (p.f>1) p.f=1
 		end
-		p.f+=0.005
-		if (p.f>1) p.f=1
 	end
 	if tm%3==0 and
 		not p.land and
@@ -233,7 +233,7 @@ function plu(p)
 	tm%3==0 and not p.turn then
 		if btn(invert and 3 or 2) and
 	 	abs(p.dir)<5 and p.y>=8 then
-   if (t>=0.3 or abs(p.dir)<2) p.dir+=d
+   if (p.t>=0.3 or abs(p.dir)<2) p.dir+=d
 		elseif btn(invert and 2 or 3) and
  		abs(p.dir)>1 then
 			p.dir-=d
@@ -277,7 +277,7 @@ function cld(r,x,y)
 	end
 	c.d=(flr(rnd(2)) == 1) and 1 or -1
 	c.f=(flr(rnd(easy and 4 or 3)) == 1) and true or false
-	if (c.f and c.y<r)c.y=r+8
+	if (c.f and c.y<(r+8))c.y=r+8
 	if c.f and abs(xnorm(c.x-plane.x)) < 128 then
 		c.f=false
 	end
@@ -378,10 +378,10 @@ function bal(x,y)
 end
 function bald(v)
 	local x=tos(v.x)
-	if x<-16 or x>132 then
+	if x<-16 or x>136 then
 		return
 	end
-	spr(207,x+4,v.y-8,1,2)
+	spr(207,x-4,v.y-8,1,2)
 end
 
 function birdd(v)
@@ -567,7 +567,7 @@ function balm(v)
 	end
 
 	if not plane.land and hitbox(plane.x,plane.y,
-				     v.x-4,v.y-9,10,16) then
+				     v.x-4,v.y-9,8,16) then
 		plane.crash=1
 		plane.smoke=true
 		sfx(1)
@@ -897,7 +897,7 @@ function help(x,y)
 		print("easy mode",x+46,y+65,4)
 	end
 	print("hugeping presents",30,0,7)
-	print("v1.4",112,122)
+	print("v1.5",112,122)
 end
 
 function _draw()
