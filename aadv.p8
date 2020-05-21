@@ -3,6 +3,8 @@ version 27
 __lua__
 -- aeroplane adventure
 -- by hugeping
+easy=false
+invert=false
 tm=0
 pspr={
 	{64,8,10,1-1/8},--\\
@@ -133,7 +135,7 @@ function plu(p)
 		p.t=p.t-0.01
 		if (p.t<0)p.t=0
 	else
-		p.f-=p.t*0.001
+		p.f-=p.t*(easy and 0.75 or 1)*0.001
 		if (p.f<0)p.f=0
 	end
 	local dx=1*cos(a)*(t)
@@ -145,7 +147,7 @@ function plu(p)
 	if (not p.turn) p.land=false
 	if not p.stp and not p.land
 	and colc then
-		if fget(colc,1) and abs(p.dir)>2 and abs(p.dir)<5 then
+		if fget(colc,1) and abs(p.dir)>(easy and 1 or 2) and abs(p.dir)<5 then
 			-- p.y=coly\8*8-1
 			p.dir=d>0 and 4 or -4
 			p.land=true
@@ -217,8 +219,9 @@ function plu(p)
 			p.turn=1
 	end
 	if p.f>0 then
-		if btn(4) or (btn(1) and d>0) or
-		(btn(0) and d<0) then
+		if btn(4) then
+-- or (btn(1) and d>0) or
+--	(btn(0) and d<0) then
 			p.t+=0.02
 		elseif btn(5) then
 			p.t-=0.02
@@ -228,10 +231,10 @@ function plu(p)
 	if (p.t<0) p.t=0
 	if not p.land and
 	tm%3==0 and not p.turn then
-		if btn(2) and
+		if btn(invert and 3 or 2) and
 	 	abs(p.dir)<5 and p.y>=8 then
    if (t>=0.3 or abs(p.dir)<2) p.dir+=d
-		elseif btn(3) and
+		elseif btn(invert and 2 or 3) and
  		abs(p.dir)>1 then
 			p.dir-=d
 		end
@@ -273,7 +276,7 @@ function cld(r,x,y)
 		add(c,{x2,y,r2,rnd(1)})
 	end
 	c.d=(flr(rnd(2)) == 1) and 1 or -1
-	c.f=(flr(rnd(3)) == 1) and true or false
+	c.f=(flr(rnd(easy and 4 or 3)) == 1) and true or false
 	if (c.f and c.y<r)c.y=r+8
 	if c.f and abs(xnorm(c.x-plane.x)) < 128 then
 		c.f=false
@@ -347,7 +350,7 @@ function cldm(c)
 		v[4]+=rnd(0.01)
 	end
 	if c.f and not c.flash
-	and tm%30==0 and rnd(100)<30 then
+	and tm%30==0 and rnd(100)<(easy and 15 or 30) then
 		c.flash=1
 	end
 	return seen
@@ -366,7 +369,8 @@ function smkd(v)
 end
 
 function bird(x,y)
-	return {s=rnd(0.8)+0.4,spr=66,x=x,y=y,d=rnd(1),f=flr(rnd(2))}
+	return {s=rnd((easy and 0.5 or 0.8)+0.4), spr=66,
+		x=x,y=y,d=rnd(1),f=flr(rnd(2))}
 end
 
 function bal(x,y)
@@ -437,7 +441,7 @@ end
 crashes={}
 
 function start()
-	if (not ending) music(1)
+	if (not ending and not options) music(1)
 	for v in all(crashes) do
 		mm(v[2],v[3],v[1])
 	end
@@ -581,8 +585,9 @@ function birdm(v)
 	if c==0 then
 		v.x,v.y=xnorm(xx),yy
 	else
-		v.d=rnd(1)
-		v.s=rnd(0.8)+0.4
+	 local b=bird(v.x,v.y)
+		v.d=b.d
+		v.s=b.s
 	end
 	if not plane.land and
 		not plane.stp and
@@ -618,12 +623,27 @@ function _update()
 		title+=1
 		if (title==0) then
 			title=false
-			music(-1)
+			music(-1,250)
 		end
 	end
-	if title and (btnp(4) or btnp(5)) then
-		title=-10
-		return
+	if title then
+		if options then
+			if btn(4) then
+				start()
+		 	options=not options
+			elseif btnp(0) or btnp(1) then
+				easy=not easy
+				sfx(6)
+		 elseif btnp(2) or btnp(3) then
+		 	invert=not invert
+				sfx(6)
+			end
+		elseif btnp(4) then
+	 	title=-10
+ 		return
+ 	elseif btnp(5) then
+ 		options=not opttions
+ 	end
 	end
 	if gameover then
 		gameover+=1
@@ -818,13 +838,37 @@ function scene(x,y,f)
 		end
 	end
 end
+function opts(x,y)
+	y+=3
+	x+=16
+ print("ingame control",x+20,y,1)
+ y+=9
+ if not invert then
+	 print("⬆️⬇️⬅️➡️ turning",x,y)
+ else
+	 print("⬇️⬆️⬅️➡️ turning",x,y)
+	end
+ y+=8
+	print("🅾️z/❎x throttle up/down",x,y)
+ y+=13
+ print("options",x+32,y,0xf)
+ y+=9
+ x+=10
+ local m=easy and "easy" or "normal"
+	print("⬅️➡️ mode:"..m,x,y,7)
+	m=invert and "inverted" or "normal"
+	y+=8
+	print("⬆️⬇️ control:"..m,x,y)
+	y+=9
+	print("🅾️z ok",x+24,y,(tm\5%2==0)and 7 or 15)
+end
 
 function help(x,y)
 	print("your brother is a polar",x+16,y,1)
 	print("explorer. he got in trouble!",x+6,y+8)
 	fillp(0b1010010110100101)
-	x+=3
 	y+=1
+	x+=3
 	rectfill(x+24,y+16,x+95,y+32,0x10)
 	for i=0,8 do
 		local c=0
@@ -847,10 +891,13 @@ function help(x,y)
 	end
 	x-=3
 	print("just take him home!⌂",x+22,y+43,2)
-	print("⬆️⬇️⬅️➡️-turning",x+32,y+52,7)
-	print("🅾️❎-throttle",x+38,y+58)
-	print("hugeping presents",30,0)
-	print("v1.3",112,122)
+ print("🅾️z start",x+46,y+52,(tm\5%2==0)and 7 or 15)
+ print("❎x help+options",x+31,y+58,7)
+ if easy then
+		print("easy mode",x+46,y+65,4)
+	end
+	print("hugeping presents",30,0,7)
+	print("v1.4",112,122)
 end
 
 function _draw()
@@ -886,7 +933,11 @@ function _draw()
 	if title then
 		spr(200,36,16,7,1)
 		print("adventure",46,28,2)
-		help(1,40)
+  if options then
+			opts(1,40)
+  else
+			help(1,40)
+		end
 	end
 	if gameover then
 		print("game over!",45,63,7)
@@ -1189,7 +1240,7 @@ __map__
 0000000000000000000000001000004f20202020202020207777c20000000000000000d06767676767c6676767676767d100000000000000004c000000004f777777c20000d067676767c06720202020202020207777777777c20000000000000000000000100000000000000000000000465a76460000fdedeb4a4b00000000
 e3e3e3f35959595959595959595959c067676767676767676767c15959595959595959c067676767c667676767676767c1595959595959595959595959595959595959595959595959595959595959595959595959595959595959595959595959595959595959595959595959595959696969696969696969696969c7c7c7c7
 __sfx__
-010100001164001600006000460004600046000460003600036000260002600036000360004600046000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000100001164001600006000460004600046000460003600036000260002600036000360004600046000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000100003365032650306502e6502c6502965025650206501c6501665011650106500465001650006500065000650000000000000000000000000000000000000000000000000000000000000000000000000000
 000100003c65039650356503265030650356502d6502b650296502d65025650206501d6501c6501965017650166501165012650106500f6500e6500d6500b6500a65009650086500865007650076500565005650
 000100000a250152501a25021250282502d2503225035250392503c2503d250295002b500315003550038500385001f0002300000000010000100001000000003a10000000000000000000000000000000000000
