@@ -369,7 +369,7 @@ function smkd(v)
 end
 
 function bird(x,y)
-	return {s=rnd((easy and 0.5 or 0.8)+0.4), spr=66,
+	return {s=rnd(easy and 0.4 or 0.8)+0.4, spr=66,
 		x=x,y=y,d=rnd(1),f=flr(rnd(2))}
 end
 
