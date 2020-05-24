@@ -6,6 +6,8 @@ __lua__
 easy=false
 hard=false
 
+poke(0x5f5c,255)
+
 function dif(a,b,c)
 	return hard and a or (easy and c or b)
 end
@@ -496,7 +498,7 @@ function start()
 		add(clds,cld(rnd(10)+8,
 			     rnd(6144)-3072,rnd(64)))
 	end
-	for i=1,dif(48,32,24) do
+	for i=1,dif(64,32,24) do
 		add(birds,bird(rnd(6144)-3072,
 			       rnd(64)))
 	end
@@ -948,7 +950,7 @@ function help(x,y)
 		print("hard mode",x+46,y+65,4)
 	end
 	print("hugeping presents",30,0,15)
-	print("v1.7",112,122)
+	print("v1.8",112,122)
 end
 
 function _draw()
