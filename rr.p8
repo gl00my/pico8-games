@@ -91,10 +91,11 @@ end
 function _init()
 	mklevel(16,16,512)
 	ship={x=64,y=-110,g=0,v=0,h=0,t=0,tx=0}
-//	ship.y=*8
+//	ship.y=110*8
 	yy,cam_y=ship.y,ship.y
 	cam()
 	cam_y=yy
+	mksnap()
 end
 
 function new(v)
@@ -138,12 +139,21 @@ function lasm()
 			add(nlas,l)
 		else
 			l.v.shot=false
+			expa(l.x,l.y,4,l.v)
 		end
 	end
 	las=nlas
 end
 
 local exp={}
+function ecol(x,y,w,h,v)
+	for e in all(exp) do
+		local d=((x-e.x)^2+(y-e.y)^2)^0.5
+		if v!=e.v and e.r>0 and d<e.cr+(w+h)/2 then
+			return true
+		end
+	end	
+end
 function expd()
 	for e in all(exp) do
 		local x,y=tos(e.x,e.y)
@@ -155,6 +165,33 @@ function expd()
 		end
 	end
 end
+
+local smk={}
+function smkm()
+	local nsmk={}
+	for s in all(smk) do
+		s.cr+=0.2
+		s.y-=rnd(1)
+		if s.cr<s.r then
+			add(nsmk,s)
+		end
+	end
+	smk=nsmk
+end
+
+function smkd()
+	for s in all(smk) do
+		local x,y=tos(s.x,s.y)
+		fillp(0b1010010110100101.1)
+		circfill(x,y,s.cr,5)
+		fillp()
+	end
+end
+
+function smka(x,y,r)
+	add(smk,{x=x,y=y,cr=0,r=r})
+end
+
 function expm()
 	local nexp={}
 	for e in all(exp) do
@@ -175,8 +212,8 @@ function expm()
 	exp=nexp
 end
 
-function expa(x,y,r)
-	add(exp,{x=x,y=y,r=r,cr=0})
+function expa(x,y,r,v)
+	add(exp,{x=x,y=y,r=r,cr=0,v=v})
 end
 
 function lshot(v,x,y,dx)
@@ -224,7 +261,7 @@ function f_hit(v,dx,dy)
 	if hit(v.pos+dx,v.yy+dy,ship.x,ship.y,8,4) then
 		v.f=nil
 		v.d=nil
-		expa(v.pos,v.yy,8)
+		expa(v.pos,v.yy,8,v)
 		ship.crash=true
 	end
 end
@@ -261,10 +298,12 @@ end
 
 function f_lcol(v,w,h,dx,dy,rr)
 	if lcol(v.pos+(dx or 0),v.yy+(dy or 0),w,h,v)
-		or pcol(v.pos+(dx or 0),v.yy+(dy or 0),w,h) then
+		or pcol(v.pos+(dx or 0),v.yy+(dy or 0),w,h)
+		or ecol(v.pos+(dx or 0),v.yy+(dy or 0),w,h)
+		then
 		v.f=nil
 		v.d=nil
-		expa(v.pos,v.yy,rr or h)
+		expa(v.pos,v.yy,rr or h,v)
 	end
 end
 
@@ -275,6 +314,49 @@ end
 
 function f_fuel(v)
 	f_lcol(v,4,8)
+end
+
+local snap={}
+
+function mksnap()
+	if ship.crash then
+		return
+	end
+	snap={}
+	for k,v in pairs(ship) do
+		snap[k]=v
+	end
+	printh("mksnap")
+end
+
+function restore()
+	ship={}
+	for k,v in pairs(snap) do
+		ship[k]=v
+	end
+	ship.v=0
+	ship.h=0
+	camera()
+	yy,cam_y=ship.y,ship.y
+	cam()
+	cam_y=yy
+end
+
+function f_item(v)
+	local tv={pos=4,yy=v.y*8+4}
+	for k,p in ipairs(lvl[v.y+1].spr) do
+			if fget(p,0) then
+				tv.d=true
+				f_lcol(tv,4,4)
+				if not tv.d then
+					lvl[v.y+1].spr[k]=0
+					if lvl[v.y+1].gate then
+						mksnap()
+					end
+				end
+			end
+			tv.pos+=8
+	end
 end
 
 function f_laser(v)
@@ -299,7 +381,7 @@ function f_laser(v)
 		if ship.x>x and ship.x<e and
 			ship.y-4<v.yy+3 and ship.y+4>v.yy+3 then
 			if not ship.crash then
-				expa(ship.x,ship.y,8)
+				expa(ship.x,ship.y,8,ship)
 			end
 			ship.crash=true
 		end
@@ -364,8 +446,12 @@ function mklevel(w,h,hh)
 	local t=1
 	local cland=0
 	local land=0
+	local dist=0
 	for y=1,hh do
-		if y%h==0 then
+		dist+=1
+		if dist>128 then
+			t=0
+		elseif y%h==0 then
 			t=rnd8()%3+1
 			cland=0
 		end
@@ -374,7 +460,11 @@ function mklevel(w,h,hh)
 		local cl=(c>>4)&0xf
 		local cr=c&0xf
 		local l1,r1
-		if t==1 then
+		if t==0 then
+			cl=0
+			cl=4+cl
+			cr=w-1-cl
+		elseif t==1 then
 			cl%=6
 			cr=w-1-cl
 		elseif t==2 then
@@ -387,7 +477,7 @@ function mklevel(w,h,hh)
 			cr=w-1-cr
 		end
 		local free=r-l
-		if cland>pland and free>8 then
+		if cland>pland and free>9 then
 			land+=1
 		elseif cland<pland then
 			land-=1
@@ -413,10 +503,25 @@ function mklevel(w,h,hh)
 			if(l<=0)l=0
 			if(r>=w-1)r=w-1
 		end
-		local cur={l=l,r=w-r-1,c=c}
+		local cur={t=t,l=l,r=w-r-1,c=c}
+		if y==1 then cur.gate=true end
 		if land>0 then
-			cur.lx=(w-(cur.l-1+cur.r))\2
+//			cur.lx=(w-(cur.l-1+cur.r))\2
+			cur.lx=cur.l+flr((free+land)/2)
 			cur.land=land
+		end
+		printh(tostr(l)..tostr(" ")..tostr(r))
+		if l>=4 and r<=11 and free>3 
+			and t==0 then
+			if dist>128+7 then
+				dist=-8
+				cur.gate=true
+			elseif dist<0 then
+				dist+=1
+			end
+			if dist==0 then
+				t=1
+			end
 		end
 		add(lvl,cur)
 	end
@@ -444,6 +549,7 @@ function mklevel(w,h,hh)
 				cur.spr[x]=0
 			end
 		end
+
 		if cur.land then
 			local xc=cur.lx-cur.land\2
 			local xe=xc+cur.land-1
@@ -545,11 +651,19 @@ function mklevel(w,h,hh)
 				end
 			end
 		end
+		if cur.gate then
+			for i=cur.l+1,14-cur.r do
+				cur.spr[i+1]=50
+				cur.f=f_item
+			end
+		end
 		prev=cur
 	end
+
 	for y=1,#lvl do
 		local v=lvl[y]
 		v.y=y-1
+		if v.t~=0 then
 		local r=(v.c>>7)&0xff
 		if r%16==1 then
 			n_mine(v)
@@ -557,6 +671,7 @@ function mklevel(w,h,hh)
 			n_fuel(v)
 		elseif r%4==1 then
 			n_laser(v)
+		end
 		end
 	end
 	for y=-16,0 do
@@ -585,7 +700,7 @@ function cam()
 		if yy<-120 then yy=-120 end
 	end
 	local v=cos(0.25+ship.v*0.25)
-	if not ship.crash then
+	if not ship.explode then
 		cam_y=(ship.y-48)-v*32
 	end
 end
@@ -611,7 +726,7 @@ function mmcol(x,y)
 	if c==0 then
 		return
 	end
-	return true
+	return c
 end
 
 function shipcol()
@@ -624,7 +739,7 @@ function shipcol()
 		mmcol(x,y+3) or
 		mmcol(x,y-3)
 	if c and not ship.crash then
-		expa(ship.x,ship.y,8)
+		expa(ship.x,ship.y,8,ship)
 		ship.crash=true
 	end
 end
@@ -632,6 +747,9 @@ function shipm()
 	local y,x=ship.y,ship.x
 	y+=cos(0.25-ship.v*0.25)
 	x+=cos(0.25-ship.h*0.25)
+	if type(ship.crash)=='number' then
+		x=x+ship.crash 
+	end
 	if not ship.crash then
 		ship.x,ship.y=x,y
 	else
@@ -639,9 +757,12 @@ function shipm()
 			not mmcol(x-6,y+3) and
 			not mmcol(x,y+3) then
 			ship.x,ship.y=x,y
+			if tm%10==1 and not ship.explode then
+				smka(ship.x+rnd(8)-4,ship.y+rnd(8)-4,8)
+			end
 		else
 			if not ship.explode then
-				expa(ship.x,ship.y,8)
+				expa(ship.x,ship.y,8,ship)
 				ship.explode=15
 				partsa(ship.x,ship.y)
 			end
@@ -671,9 +792,11 @@ function shipm()
 	ship.v+=0.01
 	ship.v=clip(ship.v,-1,1)
 	shipcol()
-	if lcol(ship.x,ship.y,8,4) then
+	if lcol(ship.x,ship.y,8,4) or
+		ecol(ship.x,ship.y,8,4,ship) then
+		expa(ship.x,ship.y,8,ship)
 		ship.crash=true
-		expa(ship.x,ship.y,8)
+		ship.crash=ship.h
 	end
 end
 
@@ -688,6 +811,7 @@ function _update60()
 	lasm()
 	expm()
 	shipm()
+	smkm()
 	partsm()
 	cam()
 end
@@ -708,14 +832,14 @@ function partsm()
 		if mmcol(p.x+dx,p.y+dy) then
 			if mmcol(p.x+dx,p.y) then
 				dx=-dx
-				expa(p.x,p.y,rnd(3)+3)
+				expa(p.x,p.y,rnd(3)+3,p)
 			end
 			if mmcol(p.x,p.y+dy) then
 				if dy>0 and p.v<0.1 then
 					p.t=1000
 				end
 				dy=-dy
-				expa(p.x,p.y,rnd(3)+3)
+				expa(p.x,p.y,rnd(3)+3,p)
 			end
 		else
 			p.x+=dx
@@ -737,11 +861,12 @@ function partsm()
 end
 
 function partsa(x,y)
-	local p={13,14,15,31,47}
-	for i=1,rnd(10)+5 do
+	local p={13,14,15,31,47,41,42}
+	for i=1,rnd(6)+6 do
 		add(parts,{v=1,hi=flr(rnd(2))==1,
 		vi=flr(rnd(2))==1,
-		x=x,y=y,dir=rnd(1),t=0,spr=p[flr(rnd(#p)+1)]})
+		x=x,y=y,dir=rnd(1),t=0,
+		spr=p[(i-1)%#p+1]})
 	end
 end
 
@@ -759,7 +884,15 @@ function shipd()
 	if ship.explode then
 		return
 	end
-	if ship.tx<0 then
+	if type(ship.crash)=='number' then
+		if ship.crash>0 then
+			spr(11,x-8,y-4,2,1,true)
+		elseif ship.crash<0 then
+			spr(11,x-8,y-4,2,1)
+		else
+			spr(9,x-8,y-4,2,1)
+		end
+	elseif ship.tx<0 then
 		d2=1
 		spr(11,x-8,y-4,2,1)
 	elseif ship.tx>0 then
@@ -779,14 +912,26 @@ function shipd()
 		spr(29+(tm\5%2),x-14,y-2,1,1,true)
 	end
 end
+function anim(c)
+	local a={
+		[50]={50,51,52,53};
+	}
+	if a[c] then
+		c=a[c][tm\10%#a[c]+1]
+	end
+	return c
+end
 
 function _draw()
 	cls(0)
 	if ship.explode then
+		ship.explode-=1
 		if ship.explode>0 then
 			camera(rnd(4)-2,rnd(4)-2)
-			ship.explode-=1
 		else
+			if ship.explode<-128 then
+				restore()
+			end
 			camera()
 		end
 	end
@@ -801,7 +946,8 @@ function _draw()
 		local v=lvl[y+yy\8]
 		for x=1,#v.spr do
 			if v.spr[x]!=0 then
-				spr(v.spr[x],(x-1)*8,(y-1)*8-yy%8)
+				local s=anim(v.spr[x])
+				spr(s,(x-1)*8,(y-1)*8-yy%8)
 			end
 		end
 --		spr(v.lspr,v.l*8,(y-1)*8-yy%8)
@@ -817,7 +963,8 @@ function _draw()
 	lasd()
 	partsd()
 	expd()
- print(tostr(yy\8),0,0,7)
+	smkd()
+	print(tostr(yy\8),0,0,7)
 end
 __gfx__
 000000001111111dd0000000d00000001111111d1111111d00000000111111111111111d00000000d000000000000000d0000000001000000000000000000000
@@ -838,18 +985,18 @@ __gfx__
 00000000110111110000000dd11111110000000dd11111110000000000d1d1000000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000cccccc0099999900000000000000000000000000000000000000000000000000000000000000000
 00055500000555000000000000000000000900000007000077ffff6677ffff660000000000000000000000000000000000000000000000000000000000011000
-00222220002222200000000000000000000900000007000077ffff6677ffff660000000000000000000000000000000000000000000000000000000000cd1000
-00585550005e555009999990077777700009000000070000ee888888ee8888880000000000000000000000000000000000000000000000000000000000cdd100
-00bbb33000bbb33000000000000000000009000000070000ee888888ee88888800000000000000000000000000000000000000000000000000000000000dd100
-000555000005550000000000000000000009000000070000ee888888ee88888800000000000000000000000000000000000000000000000000000000000dd100
-00000000000000000000000000000000000900000007000077ffff6677ffff66000000000000000000000000000000000000000000000000000000000000d000
+00222220002222200000000000000000000900000007000077ffff6677ffff6600000000000000d000d666d00000000000000000000000000000000000cd1000
+00d8555000d9555009999990077777700009000000070000ee888888ee88888800000000000dddf000fcccf00000000000000000000000000000000000cdd100
+00333330003b333000000000000000000009000000070000ee888888ee888888000000000ddd11f000f111f000000000000000000000000000000000000dd100
+000555000005550000000000000000000009000000070000ee888888ee88888800000000001100f000f676f000000000000000000000000000000000000dd100
+00000000000000000000000000000000000900000007000077ffff6677ffff66000000000000000000060600000000000000000000000000000000000000d000
 00000000000000000000000000000000000000000000000077ffff6677ffff660000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000077ffff6677ffff660000000000000000000000000000000000000000000000000000000000000000
 d0000000d00000000000000000000000000000000000000077ffff6677ffff660000000000000000000000000000000000000000000000000000000000000000
-d0000000d000000000000000000000000000000000000000ee888888ee8888880000000000000000000000000000000000000000000000000000000000000000
-df880000dfee000000000000000000000000000000000000ee888888ee8888880000000000000000000000000000000000000000000000000000000000000000
-df880000dfee000000000000000000000000000000000000ee888888ee8888880000000000000000000000000000000000000000000000000000000000000000
-d0000000d00000000000000000000000000000000000000077ffff6677ffff660000000000000000000000000000000000000000000000000000000000000000
+d0000000d0000000ccccccccccccccccccccccccccccccccee888888ee8888880000000000000000000000000000000000000000000000000000000000000000
+df880000dfee0000d8d1d1d1d1d9d1d1d1d1dad1d1d1d1dbee888888ee8888880000000000000000000000000000000000000000000000000000000000000000
+df880000dfee0000ccccccccccccccccccccccccccccccccee888888ee8888880000000000000000000000000000000000000000000000000000000000000000
+d0000000d00000001111111111111111111111111111111177ffff6677ffff660000000000000000000000000000000000000000000000000000000000000000
 d0000000d00000000000000000000000000000000000000077ffff6677ffff660000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000cccccc0099999900000000000000000000000000000000000000000000000000000000000000000
 __label__
@@ -982,3 +1129,6 @@ __label__
 82228222828282228888822282228222828882228882822288888888888888888888888888888888888882228222822282228288822282228882822288822288
 88888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888
 
+__gff__
+0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
