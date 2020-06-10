@@ -91,7 +91,7 @@ end
 function _init()
 	mklevel(16,16,512)
 	ship={x=64,y=-110,g=0,v=0,h=0,t=0,tx=0}
-//	ship.y=110*8
+//	ship.y=50*8
 	yy,cam_y=ship.y,ship.y
 	cam()
 	cam_y=yy
@@ -479,7 +479,7 @@ function mklevel(w,h,hh)
 		local free=r-l
 		if cland>pland and free>9 then
 			land+=1
-		elseif cland<pland then
+		elseif cland<pland or free<=5 then
 			land-=1
 		end
 		if cland>0 and land==0 then
