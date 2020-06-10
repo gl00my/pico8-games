@@ -347,7 +347,7 @@ function f_item(v)
 	for k,p in ipairs(lvl[v.y+1].spr) do
 			if fget(p,0) then
 				tv.d=true
-				f_lcol(tv,4,4)
+				f_lcol(tv,4,4,0,0,6)
 				if not tv.d then
 					lvl[v.y+1].spr[k]=0
 					if lvl[v.y+1].gate then
@@ -701,7 +701,11 @@ function cam()
 	end
 	local v=cos(0.25+ship.v*0.25)
 	if not ship.explode then
-		cam_y=(ship.y-48)-v*32
+		if ship.crash then
+			cam_y=(ship.y-48)
+		else
+			cam_y=(ship.y-48)-v*32
+		end
 	end
 end
 function clip(v,m,x)
