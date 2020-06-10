@@ -351,7 +351,7 @@ end
 function f_lcol(v,w,h,dx,dy,rr)
 	if lcol(v.pos+(dx or 0),v.yy+(dy or 0),w,h,v)
 		or pcol(v.pos+(dx or 0),v.yy+(dy or 0),w,h)
-		or ecol(v.pos+(dx or 0),v.yy+(dy or 0),w,h)
+		or ecol(v.pos+(dx or 0),v.yy+(dy or 0),w,h,v)
 		then
 		v.f=nil
 		v.d=nil
@@ -398,6 +398,10 @@ function restore()
 	end
 	for i=g.l+1,14-g.r do
 		g.spr[i+1]=0
+	end
+	if ship.gw>1 then
+			lvl[g.y].f=nil
+			lvl[g.y].d=nil
 	end
 	ship.x=64
 	ship.shot=false
