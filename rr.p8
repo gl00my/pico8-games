@@ -1,10 +1,10 @@
 pico-8 cartridge // http://www.pico-8.com
 version 27
 __lua__
-nlfsr=0xace1
-nlfsr=0xace1
-r16=12
-r8=12
+local r16=12
+local r8=12
+
+local gates={}
 
 local yy=-120
 local cam_y=-200
@@ -87,15 +87,23 @@ function rnorm(cur,prev)
 	cur.rspr=ncur.lspr
 	prev.rspr=nprev.lspr
 end
-
-function _init()
-	mklevel(16,16,512)
+local started=false
+function restart()
+	mklevel(16,16,2000)
 	ship={x=64,y=-110,g=0,v=0,h=0,t=0,tx=0}
-//	ship.y=50*8
+//	ship.y=65*8
 	yy,cam_y=ship.y,ship.y
 	cam()
 	cam_y=yy
-	mksnap()
+	mksnap(1)
+	started=true
+end
+function _init()
+	fadeout(function()
+		restart()
+	end)
+//	ship.y=1920*8
+//	restart()
 end
 
 function new(v)
@@ -318,24 +326,36 @@ end
 
 local snap={}
 
-function mksnap()
+function mksnap(g)
 	if ship.crash then
 		return
 	end
+	ship.gw=g
 	snap={}
 	for k,v in pairs(ship) do
 		snap[k]=v
 	end
-	printh("mksnap")
+//	printh("mksnap "..tostr(g))
 end
 
 function restore()
 	ship={}
+	mklevel(16,16,2000)
 	for k,v in pairs(snap) do
 		ship[k]=v
 	end
 	ship.v=0
 	ship.h=0
+	local g=gates[ship.gw]
+	if ship.gw~=1 then
+		ship.y=g.y*8+16
+	else
+		ship.y=-64
+	end
+	for i=g.l+1,14-g.r do
+		g.spr[i+1]=0
+	end
+	ship.x=64
 	ship.shot=false
 	camera()
 	yy,cam_y=ship.y,ship.y
@@ -350,9 +370,9 @@ function f_item(v)
 				tv.d=true
 				f_lcol(tv,4,4,0,0,6)
 				if not tv.d then
-					lvl[v.y+1].spr[k]=0
-					if lvl[v.y+1].gate then
-						mksnap()
+					v.spr[k]=0
+					if v.gate then
+						mksnap(v.nr)
 					end
 				end
 			end
@@ -397,6 +417,9 @@ function d_laser(v)
 			x-=1
 		end
 		line(x+4,y+3+tm%2,v.stop,y+3+tm%2,(tm\4%2==1) and 12 or 7)
+		if tm%7==1 then
+			sparka(v.stop,v.yy+3)
+		end
 	end
 end
 
@@ -443,15 +466,20 @@ function n_fuel(v)
 end
 
 function mklevel(w,h,hh)
+	r16=12
+	r8=12
+	lvl={}
 	local l,r=4,12
 	local t=1
 	local cland=0
 	local land=0
 	local dist=0
+	gates={}
 	for y=1,hh do
 		dist+=1
 		if dist>128 then
 			t=0
+			cland=0
 		elseif y%h==0 then
 			t=rnd8()%3+1
 			cland=0
@@ -511,14 +539,12 @@ function mklevel(w,h,hh)
 			cur.lx=cur.l+flr((free+land)/2)
 			cur.land=land
 		end
-		printh(tostr(l)..tostr(" ")..tostr(r))
+//		printh(tostr(l)..tostr(" ")..tostr(r))
 		if l>=4 and r<=11 and free>3 
 			and t==0 then
 			if dist>128+7 then
-				dist=-8
+				dist=-5
 				cur.gate=true
-			elseif dist<0 then
-				dist+=1
 			end
 			if dist==0 then
 				t=1
@@ -657,6 +683,8 @@ function mklevel(w,h,hh)
 				cur.spr[i+1]=50
 				cur.f=f_item
 			end
+			add(gates,cur)
+			cur.nr=#gates
 		end
 		prev=cur
 	end
@@ -687,6 +715,7 @@ function mklevel(w,h,hh)
 			lvl[y].spr[x]=7
 		end
 	end
+//	printh(#gates)
 end
 
 function cam()
@@ -807,6 +836,9 @@ end
 
 function _update60()
 	tm+=1
+	if not started then
+		return
+	end
 	for y=1,17 do
 		local v=lvl[y+yy\8]
 		if v.f then
@@ -832,19 +864,26 @@ function partsm()
 		if dy<0 then
 			dy*=p.v
 		end
+		if p.vx then
+			dx*=p.vx
+		end
 		if abs(dx)<0.01 then dx=0 end
 		if abs(dy)<0.01 then dy=0 end
 		if mmcol(p.x+dx,p.y+dy) then
 			if mmcol(p.x+dx,p.y) then
 				dx=-dx
-				expa(p.x,p.y,rnd(3)+3,p)
+				if not p.spark then
+					expa(p.x,p.y,rnd(3)+3,p)
+				end
 			end
 			if mmcol(p.x,p.y+dy) then
 				if dy>0 and p.v<0.1 then
 					p.t=1000
 				end
 				dy=-dy
-				expa(p.x,p.y,rnd(3)+3,p)
+				if not p.spark then
+					expa(p.x,p.y,rnd(3)+3,p)
+				end
 			end
 		else
 			p.x+=dx
@@ -865,10 +904,25 @@ function partsm()
 	parts=np
 end
 
+function trnd(n)
+	return flr(rnd(n))+1
+end
+
+function sparka(x,y)
+	local col={8,9,10,12}
+--	for i=1,rnd(6)+6 do
+		add(parts,{spark=true,
+		v=1,vx=0.95,x=x,
+		y=y,dir=rnd(1),
+		t=290,color=col[trnd(#col)]})
+--	end
+end
+
 function partsa(x,y)
 	local p={13,14,15,31,47,41,42}
 	for i=1,rnd(6)+6 do
-		add(parts,{v=1,hi=flr(rnd(2))==1,
+		add(parts,{v=1,
+		hi=flr(rnd(2))==1,
 		vi=flr(rnd(2))==1,
 		x=x,y=y,dir=rnd(1),t=0,
 		spr=p[(i-1)%#p+1]})
@@ -877,8 +931,13 @@ end
 
 function partsd()
 	for p in all(parts) do
-		local x,y=tos(p.x-4,p.y-4)
-		spr(p.spr,x,y,1,1,p.hi,p.vi)
+		if p.spark then
+			local x,y=tos(p.x,p.y)
+			pset(x,y,p.color)
+		else
+			local x,y=tos(p.x-4,p.y-4)
+			spr(p.spr,x,y,1,1,p.hi,p.vi)
+		end
 	end
 end
 
@@ -926,16 +985,61 @@ function anim(c)
 	end
 	return c
 end
+local fade=false
+local fade_nr=0
+
+local pals={
+0b1111111111111011.1,
+0b1111111011111011.1,
+0b1101111001111011.1,
+0b0101111001011011.1,
+0b0101101001011010.1,
+0b0101100001010010.1,
+0b0101000001010000.1,
+0b0001000001000000.1,
+0b0000000001000000.1,
+0b0000000000000000.1,
+}
+
+function fadeout(cb)
+	fade=1
+	fade_nr=1
+	fade_cb=cb
+end
+function fading()
+	if fade then
+		if fade>#pals or fade==0 then
+			fade=false
+			if(fade_cb)fade_cb()
+			fade_cb=nil
+			if fade_nr>0 then
+				fillp()
+				rectfill(0,0,127,127,0x00)
+				fade=#pals
+				fade_nr=-1
+			end
+		else
+			fillp(pals[fade])
+			rectfill(0,0,127,127,0x00)
+			fillp()
+		end
+		if (tm%5==1)fade+=fade_nr
+	end
+end
 
 function _draw()
+	if not started then 
+		fading()
+		return 
+	end
 	cls(0)
 	if ship.explode then
 		ship.explode-=1
 		if ship.explode>0 then
 			camera(rnd(4)-2,rnd(4)-2)
 		else
-			if ship.explode<-128 then
-				restore()
+			if ship.explode<-128 and not fade then
+				fadeout(restore)
 			end
 			camera()
 		end
@@ -970,6 +1074,7 @@ function _draw()
 	expd()
 	smkd()
 	print(tostr(yy\8),0,0,7)
+	fading()
 end
 __gfx__
 000000001111111dd0000000d00000001111111d1111111d00000000111111111111111d00000000d000000000000000d0000000001000000000000000000000
