@@ -327,6 +327,7 @@ function f_tank(v)
 			lshot(v,v.pos+4*v.dir,v.yy,v.dir)
 		end
 	end
+	
 	f_hit(v)
 	f_lcol(v,4,4,0,0,4)
 end
@@ -342,7 +343,9 @@ function f_mine(v)
 	if v.started then
 		xx+=v.dir*0.3
 	else
-		v.started=abs(ship.y-v.yy)<v.dist
+		if abs(ship.y-v.yy)>8 then
+			v.started=abs(ship.y-v.yy)<v.dist
+		end	
 	end
 	if mmcol(xx+v.dir*4,v.yy) then
 		v.dir=-v.dir
@@ -593,7 +596,7 @@ function f_rock(v)
 	if v.pos>256 then v.pos=-7 end
 	if v.pos<-128 then v.pos=136 end
 	f_hit(v)
-	f_lcol(v,4,4,0,0,4)
+	f_lcol(v,4,2,0,0,4)
 end
 
 function d_rock(v)
