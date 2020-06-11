@@ -103,7 +103,7 @@ end
 local started=false
 function restart()
 	mklevel(16,16,2000)
-	ship={x=64,y=-110,g=0,v=0,h=0,t=0,tx=0}
+	ship={f=1,x=64,y=-110,g=0,v=0,h=0,t=0,tx=0}
 //	ship.y=128*8-16
 	yy,cam_y=ship.y,ship.y
 	cam()
@@ -404,6 +404,11 @@ end
 
 function f_fuel(v)
 	f_lcol(v,4,8)
+	if not ship.crash and hit(v.pos,v.yy,ship.x,
+	ship.y,8,4) then
+		ship.f+=0.01
+		if ship.f>1 then ship.f=1 end
+	end
 end
 
 local snap={}
@@ -977,12 +982,14 @@ function shipm()
 			end
 		end
 	end
-	if btn(0) and not ship.crash then
+	if btn(0) and ship.f>0 and not ship.crash then
 		ship.h-=0.02
 		ship.tx=-1
-	elseif btn(1) and not ship.crash then
+		ship.f-=0.0005
+	elseif btn(1) and ship.f>0 and not ship.crash then
 		ship.h+=0.02
 		ship.tx=1
+		ship.f-=0.0005
 	else
 		ship.h*=0.90
 		ship.tx=0
@@ -991,13 +998,15 @@ function shipm()
 		lshoty(ship,ship.x+1,ship.y,2)
 	end
 	ship.h=clip(ship.h,-1,1)
-	if btn(2) and not ship.crash then
+	if btn(2) and ship.f>0 and not ship.crash then
 		ship.v-=0.02
 		ship.t=true
+		ship.f-=0.0005
 	else
 		ship.t=false
 		ship.v*=0.99
 	end
+	if ship.f<0 then ship.f=0 end
 	if not ship.crash then
 		if x<8 then ship.tx=1 ship.h+=0.2 end
 		if x>=120 then ship.tx=-1 ship.h-=0.2 end
@@ -1192,6 +1201,23 @@ function fading()
 	end
 end
 
+function hud()
+	rectfill(64-12,0,64+12,4,1)
+//	line(64-12,0,64+12,0,7)
+	pset(64-12,1,7)
+	pset(64+12,1,7)
+	pset(64,1,7)
+	pset(64-12,3,7)
+	pset(64+12,3,7)
+	pset(64,3,7)
+
+	line(64-12,2,64+12,2,7)
+	local fx=23*ship.f
+	line(64-11+fx,0,64-11+fx,4,10)
+	print("e",64-12-4,0,2)
+	print("f",64+12+2,0,3)
+end
+
 function _draw()
 	if not started then 
 		fading()
@@ -1275,6 +1301,7 @@ function _draw()
 	partsd()
 	expd()
 	smkd()
+	hud()
 	print(tostr(yy\8),0,0,7)
 	fading()
 end
