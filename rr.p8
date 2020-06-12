@@ -1,15 +1,20 @@
 pico-8 cartridge // http://www.pico-8.com
 version 27
 __lua__
+local save_seed
+local handl=0.03
 local r16=12
+local gameover=false
 local r8=12
 local explode=false
 local gates={}
 local score=0
-
+local theend=false
 local yy=-120
 local cam_y=-200
 local tm=0
+local lives=5
+local title=true
 
 local pals={
 0b1111111111111011.1,
@@ -102,12 +107,15 @@ function rnorm(cur,prev)
 	prev.rspr=nprev.lspr
 end
 local started=false
-function restart()
+function restart(seed)
 	score=0
-	target=false
-	mklevel(16,16,2000)
+	gameover=false
+	theend=false
+	target=0
+	mklevel(16,16,2000,seed)
 	ship={dshot=0,f=1,x=64,y=-110,g=0,v=0,h=0,t=0,tx=0}
-	ship.y=128*15*8+16
+//	ship.y=128*15*8+16
+//	ship.y=128*7*8-230
 	yy,cam_y=ship.y,ship.y
 	cam()
 	cam_y=yy
@@ -127,7 +135,7 @@ function new(v)
 	for i=1,#v.spr do
 		if v.spr[i]==0 then
 			pos-=1
-			if pos<=0 then
+			if pos<=0 and i>1 and v.spr[i+1]==0 and v.spr[i-1]==0 then
 				v.pos=(i-1)*8
 				return true
 			end
@@ -165,6 +173,7 @@ function lasm()
 			add(nlas,l)
 		else
 			l.v.shot=false
+			sfx(6)
 			expa(l.x,l.y,4,l.v)
 		end
 	end
@@ -282,13 +291,23 @@ function hit(x,y,xx,yy,ww,hh,dx,dy)
 	end
 end
 
+function scorea(d)
+	local os=score
+	score+=d or 5
+	if score\100~=os\100 then
+		lives+=1
+		sfx(5)
+	end
+end
+
 function f_hit(v,dx,dy)
 	dx=dx or 0
 	dy=dy or 0
 	if hit(v.pos+dx,v.yy+dy,ship.x,ship.y,8,4) then
 		v.f=nil
 		v.d=nil
-		score+=(v.score or 1)
+		sfx(2)
+		scorea(v.score)
 		expa(v.pos,v.yy,8,v)
 		ship.crash=true
 	end
@@ -306,6 +325,7 @@ function f_gaub(v)
 	end
 	if not ship.crash and v.yy>ship.y and not v.shot then
 		lshoty(v,v.pos+1,v.yy-2,-1)
+		sfx(7)
 	end
 	f_hit(v)
 	f_lcol(v,4,4,0,0,4)
@@ -336,6 +356,7 @@ function f_tank(v)
 		if not ship.crash and not v.shot and v.delay<=0 then
 			lshot(v,v.pos+4*v.dir,v.yy,v.dir)
 			v.delay=100
+			sfx(7)
 		end
 	end
 	
@@ -352,7 +373,9 @@ function f_mine(v)
 	v.m+=0.01
 	local xx=v.pos
 	if v.started then
-		xx+=v.dir*0.3
+		if agate(v,3) then
+			xx+=v.dir*0.3
+		end
 	else
 		if abs(ship.y-v.yy)>8 then
 			v.started=abs(ship.y-v.yy)<v.dist
@@ -364,16 +387,25 @@ function f_mine(v)
 		v.pos=xx
 	end
 	v.yy=v.y*8+4+sin(v.m)*4,1
-	if v.started and not v.shot and not ship.crash and ship.y>v.yy-8 and ship.y<v.yy+8 then
+	if v.started and not v.shot and not ship.crash and ship.y>v.yy-16 and ship.y<v.yy+16 then
 		if sgn(ship.x-v.pos)==sgn(v.dir) then
+			if agate(v,7) then
+				sfx(7)
 				lshot(v,v.pos,v.yy,
 				(ship.x<v.pos) and -1 or 1)
+			end
 		end
 	end
 	f_hit(v)
-	f_lcol(v,3,3,0,0,4)
+	f_lcol(v,4,4,0,0,4)
 end
+
+function agate(v,n)
+	return v.y\128>=n
+end
+
 function n_gaub(v)
+	if not agate(v,5) then return end
 	if not v then return end
 	if new(v) then
 		v.nam="gaub"
@@ -386,6 +418,8 @@ function n_gaub(v)
 	end
 end
 function n_mine(v)
+	if not agate(v,2) then return end
+	if v.y<16 then return end
 	if new(v) then
 		v.nam="mine"
 		v.score=2
@@ -407,8 +441,9 @@ function f_lcol(v,w,h,dx,dy,rr)
 		then
 		v.f=nil
 		v.d=nil
+		sfx(2)
 		expa(v.pos,v.yy,rr or h,v)
-		score+=(v.score or 1)
+		scorea(v.score)
 	end
 end
 
@@ -419,10 +454,16 @@ end
 
 function f_fuel(v)
 	f_lcol(v,4,8)
-	if not ship.crash and hit(v.pos,v.yy,ship.x,
-	ship.y,8,4) then
+	if not ship.crash and hit(v.pos,v.yy-4,ship.x,
+		ship.y,8,4) or hit(v.pos,v.yy+4,ship.x,
+		ship.y,8,4) then
 		ship.f+=0.01
 		if ship.f>1 then ship.f=1 end
+		if ship.f<1 then
+			if tm%8==1 then
+				sfx(3)
+			end
+		end
 	end
 end
 
@@ -442,16 +483,17 @@ end
 
 function restore()
 	ship={}
-	mklevel(16,16,2000)
+	mklevel(16,16,2000,save_seed)
 	for k,v in pairs(snap) do
 		ship[k]=v
 	end
 	ship.v=0
 	ship.h=0
 	ship.f=1
+	target=0
 	local g=gates[ship.gw]
 	if ship.gw~=1 then
-		ship.y=g.y*8+16
+		ship.y=g.y*8+12
 	else
 		ship.y=-64
 	end
@@ -493,7 +535,7 @@ function f_brk(v,k)
 		del(v.brk,k)
 		if s==112 then
 			if (not explode)explode=10
-			target=true
+			target+=1
 		elseif v.gate then
 			if (not explode)explode=10
 			mksnap(v.nr)
@@ -537,6 +579,10 @@ function f_laser(v)
 	f_lcol(v,4,4,4,4)
 	f_hit(v,4,4)
 	if v.laser then
+		sfx(4)
+		if mm(v.stop,v.yy)==0 then
+			n_laser(v)
+		end
 		local x,e=v.pos+4,v.stop
 		if v.pos>v.stop then
 			x,e=e,x
@@ -544,6 +590,7 @@ function f_laser(v)
 		if ship.x>x and ship.x<e and
 			ship.y-4<v.yy+3 and ship.y+4>v.yy+3 then
 			if not ship.crash then
+				sfx(2)
 				expa(ship.x,ship.y,8,ship)
 			end
 			ship.crash=true
@@ -598,6 +645,7 @@ function n_laser(v)
 end
 
 function n_tank(v)
+	if not agate(v,9) then return end
 	v.nam="tank"
 	v.score=4
 	v.delay=0
@@ -615,6 +663,7 @@ function n_tank(v)
 end
 
 function n_rock(v)
+	if not agate(v,12) then return end
 	v.nam="rocket"
 	v.score=3
 	v.dist=(v.c%15)*8
@@ -657,10 +706,11 @@ function d_rock(v)
 end
 
 function n_fuel(v)
+	if v.y<32 then return end
 	if new(v) then
 		v.pos+=4
 		v.nam="fuel"
-		v.score=5
+		v.score=10
 		v.yy=v.y*8+8
 		if mm(v.pos,v.yy)==0 and
 			mm(v.pos,v.yy+8)==0 then
@@ -670,24 +720,29 @@ function n_fuel(v)
 	end
 end
 
-function mklevel(w,h,hh)
-	r16=12
-	r8=12
+function mklevel(w,h,hh,seed)
+	save_seed=seed
+	seed=seed or 12
+	r16,r8=seed,seed
 	lvl={}
 	local l,r=4,12
 	local t=1
 	local cland=0
 	local land=0
 	local dist=0
+	local gate_nr=0
 	gates={}
 	for y=1,hh do
 		dist+=1
-		if dist>128 then
+		if t~=5 and t~=0 then
+		
+		if dist>128 and gate_nr<14 then
 			t=0
 			cland=0
 		elseif y%h==0 and t~=5 then
 			t=rnd8()%3+1
 			cland=0
+		end
 		end
 		local pl,pr,pland=l,r,land
 		local c=abs(rnd16())
@@ -713,7 +768,7 @@ function mklevel(w,h,hh)
 			cl=0
 			cr=w-1
 		end
-		local free=r-l
+		local free=r-l-1
 		if cland>pland and free>9 then
 			land+=1
 		elseif cland<pland or free<=7 then
@@ -744,19 +799,24 @@ function mklevel(w,h,hh)
 		if y==1 then cur.gate=true end
 		if land>0 then
 //			cur.lx=(w-(cur.l-1+cur.r))\2
-			cur.lx=cur.l+flr((free+land)/2)
+			cur.lx=cur.l+ceil((free)/2) --todo
 			cur.land=land
 		end
 //		printh(tostr(l)..tostr(" ")..tostr(r))
 		if l>=4 and r<=11 and free>3 
 			and t==0 then
 			if dist>128+7 then
-				dist=-5
+				dist=-6
 				cur.gate=true
+				gate_nr+=1
+//				printh("start"..gate_nr)
 			end
+//			printh("dist"..dist.." "..y)
 			if dist==0 then
+//				printh(gate_nr.." "..y)
 				t=1
 				if y>=hh-128 then
+//					printh(gate_nr)
 					t=5
 				end
 			end
@@ -899,7 +959,8 @@ function mklevel(w,h,hh)
 		end
 		prev=cur
 	end
-
+	lvl[1].spr[lvl[1].l+1]=1
+	lvl[1].spr[16-lvl[1].r]=17
 	for y=1,#lvl do
 		local v=lvl[y]
 		v.y=y-1
@@ -916,7 +977,7 @@ function mklevel(w,h,hh)
 			local r=(v.c>>7)&0xff
 			if r%16==1 then
 				n_mine(v)
-			elseif r%24==7 then
+			elseif r%22==7 then
 				n_fuel(v)
 			elseif r%4==1 then
 				n_laser(v)
@@ -1040,11 +1101,65 @@ function shipcol()
 		mmcol(x,y+3) or
 		mmcol(x,y-3)
 	if c and not ship.crash then
+		sfx(2)
 		expa(ship.x,ship.y,8,ship)
 		ship.crash=true
 	end
 end
+
+function f_end()
+	theend=0
+	ship.h=rnd(1)
+	ship.v=rnd(1)
+	ship.y=110
+end
+
+function endm()
+	ship.x=64+cos(ship.h)*4
+	ship.h+=rnd(0.01)
+	ship.v+=rnd(0.005)
+	if theend !=true and theend>128 then
+		yy+=1
+		cam_y=yy
+		ship.y-=1
+	else
+		cam_y=ship.y-100+4*sin(ship.v)
+		yy=cam_y
+	end
+	if theend==true then theend=0 end
+	theend+=1
+end
+
 function shipm()
+	if gameover and (btnp(4) or btnp(5)) then
+		fadeout(function()
+			lives=5
+			restart()
+			title=true
+		end)
+		return
+	end
+	if theend then
+		endm()
+		return
+	end
+	if title then
+		if btn(0) and btn(1) then
+			restart(flr(rnd(16384)))
+			title=false
+			ship.v,ship.h=0,0
+		elseif btnp(4) or btnp(5) then
+			title=false
+			ship.v=0
+			ship.h=0
+		else
+			ship.y-=sin(ship.v)*rnd(0.2)
+			ship.x-=cos(ship.h)*rnd(0.1)
+			ship.v+=rnd(0.02)
+			ship.h+=rnd(0.02)
+		end
+		return
+	end
 	local y,x=ship.y,ship.x
 	y+=cos(0.25-ship.v*0.25)
 	x+=cos(0.25-ship.h*0.25)
@@ -1052,17 +1167,24 @@ function shipm()
 		x=x+ship.crash 
 	end
 	if not ship.crash then
+		if x<0 and y>0 and target>0 then
+			-- ending
+			fadeout(f_end)
+			ship.x-=0.5
+			return
+		end
 		ship.x,ship.y=x,y
 	else
-		if not mmcol(x+7,y+3) and
-			not mmcol(x-6,y+3) and
-			not mmcol(x,y+3) then
+		if not mmcol(x+6,y+2) and
+			not mmcol(x-5,y+2) and
+			not mmcol(x,y+2) then
 			ship.x,ship.y=x,y
 			if tm%10==1 and not ship.explode then
 				smka(ship.x+rnd(8)-4,ship.y+rnd(8)-4,8)
 			end
 		else
 			if not ship.explode then
+				sfx(2)
 				expa(ship.x,ship.y,8,ship)
 				ship.explode=15
 				explode=15
@@ -1070,12 +1192,13 @@ function shipm()
 			end
 		end
 	end
-	if btn(0) and ship.f>0 and not ship.crash then
-		ship.h-=0.02
+	local both=btn(0) and btn(1)
+	if not both and btn(0) and ship.f>0 and not ship.crash then
+		ship.h-=handl
 		ship.tx=-1
 		ship.f-=0.0005
-	elseif btn(1) and ship.f>0 and not ship.crash then
-		ship.h+=0.02
+	elseif not both and btn(1) and ship.f>0 and not ship.crash then
+		ship.h+=handl
 		ship.tx=1
 		ship.f-=0.0005
 	else
@@ -1083,18 +1206,22 @@ function shipm()
 		ship.tx=0
 	end
 	if ship.dshot==0 and not ship.crash and btnp(4) then
-		lshoty(ship,ship.x+1,ship.y,2)
+		sfx(0)
+		lshoty(ship,ship.x+1,ship.y-3,3)
 		ship.dshot=20
 	end
 	if not ship.crash and ship.dshot>0 then ship.dshot-=1 end
 	ship.h=clip(ship.h,-1,1)
-	if btn(2) and ship.f>0 and not ship.crash then
-		ship.v-=0.02
+	if (btn(2) or btn(5) or both) and ship.f>0 and not ship.crash then
+		ship.v-=handl
 		ship.t=true
 		ship.f-=0.0005
 	else
 		ship.t=false
 		ship.v*=0.99
+	end
+	if ship.t then
+		sfx(1)
 	end
 	if ship.f<0 then ship.f=0 end
 	if not ship.crash and ship.y<0 then
@@ -1102,12 +1229,16 @@ function shipm()
 		if x>=120 then ship.tx=-1 ship.h-=0.2 end
 		if y<-128 then ship.t=false ship.v=0 end
 	end
+	if not ship.t then
+		ship.v+=0.01
+	end
 	ship.v+=0.01
 	ship.v=clip(ship.v,-1,1)
 	shipcol()
 	if lcol(ship.x,ship.y,8,4) or
 		ecol(ship.x,ship.y,8,4,ship) then
 		expa(ship.x,ship.y,8,ship)
+		sfx(2)
 		ship.crash=true
 		ship.crash=ship.h
 	end
@@ -1118,7 +1249,7 @@ function _update60()
 	if not started then
 		return
 	end
-	for y=1,17 do
+	for y=1,18 do
 		local v=lvl[y+yy\8]
 		if v.f then
 			v:f()
@@ -1162,6 +1293,7 @@ function partsm()
 					p.l=1000
 				end
 			else
+					sfx(6)
 					expa(p.x,p.y,rnd(3)+3,p)
 					p.l=1000
 			end
@@ -1267,6 +1399,7 @@ local fade=false
 local fade_nr=0
 
 function fadeout(cb)
+	if fade then return end
 	fade=1
 	fade_nr=1
 	fade_cb=cb
@@ -1293,39 +1426,82 @@ function fading()
 end
 
 function hud()
+	if title then
+		return
+	end
+	if gameover then
+		print("game over",48,60,tm\4%2==1 and 8 or 15)
+	end
 	spr(43,64-12,0,3,1)
 	print("gate "..ship.gw,100,0,7)
 	local fx=ceil(20*ship.f)
 	line(64-11+fx,1,64-11+fx,3,10)
 	print("score "..score,0,0,15)
+	for i=1,lives do
+		if i>10 then
+			break
+		end
+		print("♥",128-i*6,123,8)
+	end
+	if save_seed then
+		print("seed "..save_seed,0,123,7)
+	end
 //	print(tostr(yy\8),0,0,7)
 end
 
-function _draw()
-	if not started then 
-		fading()
-		return 
+function endd()
+	pal(14,0)
+	starsd()
+	if theend>200 then
+		pal()
+		return
 	end
-	cls(0)
-	if explode then
-			if explode>0 then
-				camera(rnd(4)-2,rnd(4)-2)
-			end
-			explode-=1
-			if explode==0 then
-				camera()
-			end
-			if explode<-15 then
-				explode=false
+	local off=tm*2%8
+
+	if theend>100 then
+		off=(theend-100)*2
+	end
+
+	for y=-1,16 do
+			for x=1,16 do
+					spr(16,(x-1)*8,off+(y-1)*8)
 			end
 	end
-	if ship.explode then
-		ship.explode-=1
-		if ship.explode<-128 and not fade then
-			fadeout(restore)
+
+	if theend>100 then
+		map(16,0,0,-8*10+off,16,8)
+		if off<200 then
+			for i=1,3 do
+				spr(115,(i+4)*8-off\7,-16+off)
+				spr(115,(i+7)*8+off\7,-16+off)
+			end
 		end
 	end
-	if -yy<=128 then
+
+	local s=16
+	for y=-1,16 do
+			for x=1,16 do
+					if x<5 or x>12 then
+						s=7
+					elseif x==5 then
+						s=1
+					elseif x==12 then
+						s=17
+					else
+						s=0
+					end
+					if s!=0 then
+						spr(s,(x-1)*8,off+(y-1)*8)
+					end
+			end
+	end
+	shipd()
+//	cam()
+	pal()
+	fading()
+end
+
+function starsd()
 		if not stars then
 			stars={}
 			local col={
@@ -1341,9 +1517,50 @@ function _draw()
 		for s in all(stars) do
 			pset(s.x,s.y,s.c)
 		end
-		local _,y=tos(0,-4)
 		pal(14,0)
-		spr(68,100,(y-24)*0.7,2,2)
+//		spr(68,100,(y-24)*0.7,2,2)
+		spr(68,100,40,2,2)
+		pal(15,0)
+end
+function _draw()
+	if not started then 
+		fading()
+		return 
+	end
+	cls(0)
+	if theend then
+		endd()
+		return
+	end
+	if explode then
+			if explode>0 then
+				camera(rnd(4)-2,rnd(4)-2)
+			end
+			explode-=1
+			if explode==0 then
+				camera()
+			end
+			if explode<-15 then
+				explode=false
+			end
+	end
+	if ship.explode then
+		ship.explode-=1
+		if ship.explode<-128 then
+			if lives>1 then
+				fadeout(function()
+					lives-=1
+					restore()
+				end)
+			else
+				lives=0
+				gameover=true
+			end
+		end
+	end
+	if -yy<=128 then
+		starsd()
+		local _,y=tos(0,-4)
 		pal(15,0)
 		map(0,0,0,y-60,16,8)
 		pal()
@@ -1386,6 +1603,24 @@ function _draw()
 	expd()
 	smkd()
 	hud()
+	if title then
+		local x,y=0,60
+		print("pilot! this is the planet",x+12,y,6)
+		y+=6
+		print("of evil boltzmann brain kylix!",x+5,y)
+		y+=6
+		print("destroy the main data center!",x+7,y,8)
+		y+=6
+		print("it is behind 15 gates.",x+24,y,8)
+		y+=6
+		print("good luck!",x+48,y,9)
+		y+=12
+		print("🅾️/z start",x+48,y,tm\4%2==1 and 15 or 8)
+		y+=6
+		print("⬅️+➡️ random raid",x+34,y,13)
+		print("v1.0",112,122,15)
+		print("hugeping presents",32,0)
+	end
 	fading()
 end
 __gfx__
@@ -1406,11 +1641,11 @@ fff1ffff11111f110000011100d111f100000d110d1111110000000011111f111111111100000000
 ffffffffd1111111000000d10d11f111000000d10d11f11100000000011111d011111f1100000000000000000000000000000000000000000000000000000000
 ffffffff11f111110000000dd11111110000000dd1111111000000000011dd001111111100000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000cccccc0099999900000000000000000000000000000000000000000000000000000000000000000
-0005550000055500000000000000000000090000000c000077ffff6677ffff660000000000000000000000001811111111191111111113100000000000011000
-0022222000222220000000000000000000090000000c000077ffff6677ffff6600000000000000d000d666d01888888999999999333333100000000000cd1000
-00d8555000d95550099999900777777000090000000c0000ee888888ee88888800000000000dddf000fcccf01811111111191111111113100000000000cdd100
-00333330003b3330000000000000000000090000000c0000ee888888ee888888000000000ddd11f000f111f000000000000000000000000000000000000dd100
-0005550000055500000000000000000000090000000c0000ee888888ee88888800000000001100f000f676f000000000000000000000000000000000000dd100
+0005550000055500000000000000000000090000000c000077ffff6677ffff660000000000000000000000001811111111191111111113100005550000011000
+0022222000222220000000000000000000090000000c000077ffff6677ffff6600000000000000d000d666d01888888999999999333333100022222000cd1000
+00d8555000d95550099999900777777000090000000c0000ee888888ee88888800000000000dddf000fcccf018111111111911111111131000d8555000cdd100
+00333330003b3330000000000000000000090000000c0000ee888888ee888888000000000ddd11f000f111f000000000000000000000000000333330000dd100
+0005550000055500000000000000000000090000000c0000ee888888ee88888800000000001100f000f676f000000000000000000000000000055500000dd100
 0000000000000000000000000000000000090000000c000077ffff6677ffff66000000000000000000060600000000000000000000000000000000000000d000
 00000000000000000000000000000000000000000000000077ffff6677ffff660000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000077ffff6677ffff66000e8000000e8000757575705757575700000000000000000000000000000000
@@ -1445,14 +1680,14 @@ f1f1f1f11f16d11f1f11111100000000000000000000000000000000000000000000000000000000
 ffffffff1116dddddddddddd00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 f1f1f1f1111666666666666600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 fddddddf111111111111111100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-6d6d6d6d6d6d6d6d00dd0d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-d1111111d111111100d0dd0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-618dbdc161ed3d2100dd0d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-d1111111d111111100d0dd0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-61dedcd161d8d5d100dd0d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-d1111111d111111100d0dd0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-615d5d71618dbde100dd0d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-d1111111d111111100d0dd0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+6d6d6d6d6d6d6d6d00dd0d0001010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+d1111111d111111100d0dd001c1c1c1c000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+618dbdc161ed3d2100dd0d00dddddddd000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+d1111111d111111100d0dd001d1d1d1d000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+61dedcd161d8d5d100dd0d00d1d1d1d1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+d1111111d111111100d0dd00dddddddd000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+615d5de1618dbda100dd0d001c1c1c1c000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+d1111111d111111100d0dd0001010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __label__
 88888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888
 88888eeeeee888888888888888888888888888888888888888888888888888888888888888888888888ff8ff8888228822888222822888888822888888228888
@@ -1584,7 +1819,7 @@ __label__
 88888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888
 
 __gff__
-0000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000010101010000000000000000010100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010100000000000000000000000000
+0000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000010101010000000000000000010100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010101000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __map__
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -1593,5 +1828,14 @@ __map__
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-5050514041424142515253415042415152000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-6060606043434343434343434360606000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+5050514041424142515253415042415152405050410000000000004250515253000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+6060606043434343434343434360606043434343434343434343434343434343000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+__sfx__
+000100003b550335502c550295502655024550225501f5501c55019550175501655013550115500f5500c55008550065500755005550015500055000550026000260002600016000160001600006000060000600
+0006000009620096003f6000160002600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000300003f670346702e6702967026670246702567025670256702767025670216701e6701a66014650116500d6400b6400764006630046200361002610006100260001600006000560004600036000160000600
+000800002d050380501d0501a050220502d050350503e0500e0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000100002925027250262502425023250212501f2501d2501b250192501625015250122500f2500c2500b2500a250072500425001250002500025000000000000000000000000000000000000000000000000000
+00100000270502e05033050350503a0503f0503f05000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000100003f6503665032650306502d6502b6502a6502865025650236501d65019650146500f650086500365001650006500065000000000000000000000000000000000000000000000000000000000000000000
+000100003b55036550315502d5502855023550205501e55019550165501455011550105500f5500d5500a55008550075500555000000000000000000000000000000000000000000000000000000000000000000
