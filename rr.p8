@@ -125,7 +125,7 @@ function _init()
 	music(0,2000)
 	if cartdata("hgpgrevraid") then
 		max_gw=dget(0) or 0
-		max_gw=15
+//		max_gw=15
 		hiscore=dget(1) or 0
 	end
 	fadeout(function()
@@ -1616,6 +1616,7 @@ function starsd()
 		pal(15,0)
 end
 function paint(xoff,yoff,y,col)
+	if y<0 then return end
 	for x=0,6*8 do
 		local yy=70\16*8+y%16
 		local xx=70%16*8
