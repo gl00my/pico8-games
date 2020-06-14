@@ -333,6 +333,7 @@ function f_hit(v,dx,dy)
 		scorea(v.score)
 		expa(v.pos,v.yy,8,v)
 		ship.crash=true
+		ship.tx*=2
 	end
 end
 
@@ -479,6 +480,11 @@ end
 
 function f_fuel(v)
 	f_lcol(v,4,8)
+	if v.f and lvl[v.y+2] and lvl[v.y+2].laser then
+		v.d=nil
+		v.f=nil
+		expa(v.pos,v.yy,8)
+	end
 	if not ship.crash and (hit(v.pos,v.yy-4,ship.x,
 		ship.y,8,4) or hit(v.pos,v.yy+4,ship.x,
 		ship.y,8,4)) then
