@@ -1361,7 +1361,7 @@ function _update60()
 		return
 	end
 	local me=(maxexp() or yy\8)
-	me=max(18,me-yy\8)
+	me=max(18,me-yy\8+1)
 	for y=1,me do
 		local v=lvl[y+yy\8]
 		if v.f then
@@ -1782,7 +1782,7 @@ function _draw()
 		end
 		y+=8
 		print("⬆️+⬇️ random world",x+32,y,13)
-		print("v1.0b",112,122,15)
+		print("v1.0",112,122,15)
 //		print("hugeping presents",32,0)
 		if hiscore>0 then
 			local h="hi score "..hiscore
