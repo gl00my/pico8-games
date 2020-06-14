@@ -7,6 +7,10 @@ function zap(v)
 	v.f=nil
 	v.d=nil
 end
+function oini(v,f,d)
+		v.f=f
+		v.d=d
+end
 local save_seed
 local hiscore=0
 local max_gw=0
@@ -36,26 +40,28 @@ local pals={
 0b0000000001000000.1,
 0b0000000000000000.1,
 }
-
+--[[
 function irnd16()
 	local t=flr(r16)^^flr(r16>>14)^^flr(r16>>13)^^flr(r16>>11)^^1
 	r16=(r16>>1)&0x7fff
 	r16|=(t<<15)
 	return r16&0xffff
 end
+--]]
 function rnd16()
 	local t=flr(r16>>15)^^flr(r16>>13)^^flr(r16>>12)^^flr(r16>>10)^^1
 	r16=(r16<<1)&0xffff
 	r16|=(t&1)
 	return r16&0xffff
 end
-
+--[[
 function irnd8()
 	local t=flr(r8>>6)^^flr(r8>>5)^^flr(r8>>4)^^r8
 	r8=(r8>>1)&0xff
 	r8=r8|((t&1)<<7)
 	return r8
 end
+--]]
 function rnd8()
 	local t=flr(r8>>7)^^flr(r8>>5)^^flr(r8>>4)^^flr(r8>>3)
 	r8=(r8<<1)&0xff
@@ -70,18 +76,6 @@ function rnd16p(v)
 	r16=s
 end
 
-function rnd1()
-	lfsr^^=lfsr>>7
-	lfsr^^=lfsr<<9
-	lfsr^^=lfsr>>13
-	return lfsr
-end
-function rnd2()
-	lfsr^^=lfsr<<7
-	lfsr^^=lfsr>>9
-	lfsr^^=lfsr<<8
-	return lfsr
-end
 local lvl={}
 
 function lnorm(cur,prev)
@@ -133,9 +127,11 @@ function _init()
 		max_gw=dget(0) or 0
 //		max_gw=15
 		hiscore=dget(1) or 0
+		save_seed=dget(2)
+		if (save_seed==0)save_seed=false 
 	end
 	fadeout(function()
-		restart()
+		restart(save_seed)
 	end)
 //	ship.y=1920*8
 //	restart()
@@ -159,7 +155,6 @@ function d_mine(v)
 	spr(32+tm\16%2,x-4,y-4,1,1,v.dir>0)
 end
 local las={}
-
 function lasd()
 	for l in all(las) do
 		local x,y=tos(l.x,l.y)
@@ -336,7 +331,6 @@ function f_hit(v,dx,dy)
 		scorea(v.score)
 		expa(v.pos,v.yy,8,v)
 		ship.crash=true
-		ship.tx*=2
 	end
 end
 
@@ -442,8 +436,7 @@ function n_gaub(v)
 		v.yy=v.y*8+6
 		v.pos+=4
 		v.dir=(v.c%2==1) and -1 or 1
-		v.f=f_gaub
-		v.d=d_gaub
+		oini(v,f_gaub,d_gaub)
 	end
 end
 function n_mine(v)
@@ -458,8 +451,7 @@ function n_mine(v)
 		v.pos+=4
 		v.yy=v.y*8+4
 		v.dir=(v.c%2==1) and 1 or -1
-		v.f=f_mine
-		v.d=d_mine
+		oini(v,f_mine,d_mine)
 	end
 end
 
@@ -703,8 +695,7 @@ function n_laser(v)
 	end
 	v.nam="laser"
 	v.score=3
-	v.d=d_laser
-	v.f=f_laser
+	oini(v,f_laser,d_laser)
 	v.tmmax=240 -- s+v.c%128
 end
 
@@ -722,8 +713,7 @@ function n_tank(v)
 		v.pos=136
 	end
 	v.yy=v.y*8+4
-	v.d=d_tank
-	v.f=f_tank
+	oini(v,f_tank,d_tank)
 end
 
 function n_rock(v)
@@ -739,8 +729,7 @@ function n_rock(v)
 		v.pos=136
 	end
 	v.yy=v.y*8+4
-	v.d=d_rock
-	v.f=f_rock
+	oini(v,f_rock,d_rock)
 end
 
 function f_rock(v)
@@ -778,14 +767,14 @@ function n_fuel(v)
 		v.yy=v.y*8+8
 		if mm(v.pos,v.yy)==0 and
 			mm(v.pos,v.yy+8)==0 then
-			v.f=f_fuel
-			v.d=d_fuel
+			oini(v,f_fuel,d_fuel)
 		end
 	end
 end
 
 function mklevel(w,h,hh,seed)
 	save_seed=seed
+	dset(2,save_seed)
 	seed=seed or 12
 	r16,r8=seed,seed
 	lvl={}
@@ -1022,7 +1011,7 @@ function mklevel(w,h,hh,seed)
 		if cur.gate then
 			for i=cur.l+1,14-cur.r do
 				cur.spr[i+1]=50
-		--		cur.f=f_item
+		--		curoitem
 			end
 			add(gates,cur)
 			cur.nr=#gates
@@ -1043,7 +1032,7 @@ function mklevel(w,h,hh,seed)
 		if v.gate and y>1 then
 			n_gaub(lvl[y-1])
 		end
-		if v.t~=0 then
+		if v.t~=0 and not v.gate then
 			local r=(v.c>>7)&0xff
 			if r%16==1 then
 				n_mine(v)
@@ -1224,7 +1213,7 @@ function shipm()
 				music(0,2000)
 			end
 			lives=5
-			restart()
+			restart(save_seed)
 			title=true
 		end)
 		return
@@ -1252,7 +1241,10 @@ function shipm()
 				mksnap(ship.gw)
 				sfx(9)
 			end
-		elseif btn(2) and btn(3) then
+		elseif btnp(2) and save_seed then
+			sfx(10)
+			fadeout(restart)
+		elseif btnp(3) then
 			sfx(10)
 			fadeout(function()
 					restart(flr(rnd(16384)))
@@ -1792,7 +1784,11 @@ function _draw()
 			print("gate ⬅️"..ship.gw.."➡️",x+48,y,15)
 		end
 		y+=8
-		print("⬆️+⬇️ random world",x+32,y,13)
+		if save_seed then
+			print("⬆️ reset-next ⬇️",x+34,y,13)
+		else
+			print("⬇️ random world",x+36,y,13)
+		end
 		print("v1.0",112,122,15)
 //		print("hugeping presents",32,0)
 		if hiscore>0 then
