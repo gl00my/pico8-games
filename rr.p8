@@ -3,6 +3,10 @@ version 27
 __lua__
 --reverse raid
 --ny hugeping
+function zap(v)
+	v.f=nil
+	v.d=nil
+end
 local save_seed
 local hiscore=0
 local max_gw=0
@@ -327,8 +331,7 @@ function f_hit(v,dx,dy)
 	dx=dx or 0
 	dy=dy or 0
 	if hit(v.pos+dx,v.yy+dy,ship.x,ship.y,8,4) then
-		v.f=nil
-		v.d=nil
+		zap(v)
 		sfx(2)
 		scorea(v.score)
 		expa(v.pos,v.yy,8,v)
@@ -465,8 +468,7 @@ function f_lcol(v,w,h,dx,dy,rr)
 		or pcol(v.pos+(dx or 0),v.yy+(dy or 0),w,h)
 		or ecol(v.pos+(dx or 0),v.yy+(dy or 0),w,h,v)
 		then
-		v.f=nil
-		v.d=nil
+		zap(v)
 		sfx(2)
 		expa(v.pos,v.yy,rr or h,v)
 		scorea(v.score)
@@ -480,10 +482,16 @@ end
 
 function f_fuel(v)
 	f_lcol(v,4,8)
-	if v.f and lvl[v.y+2] and lvl[v.y+2].laser then
-		v.d=nil
-		v.f=nil
-		expa(v.pos,v.yy,8)
+	local n=lvl[v.y+2]
+	if v.f and n and n.laser then
+		local x,e=n.pos+4,n.stop
+		if x>e then
+			x,e=e,x
+		end
+		if v.pos>=x and v.pos<=e then 
+			zap(v)
+			expa(v.pos,v.yy,8)
+		end
 	end
 	if not ship.crash and (hit(v.pos,v.yy-4,ship.x,
 		ship.y,8,4) or hit(v.pos,v.yy+4,ship.x,
@@ -526,8 +534,7 @@ function rgate(g,set)
 	if g.y>0 then
 		n_gaub(lvl[g.y])
 		if not set then
-			lvl[g.y].f=nil
-			lvl[g.y].d=nil
+			zap(lvl[g.y])
 		end
 	end
 end
@@ -1095,10 +1102,8 @@ function mklevel(w,h,hh,seed)
 			end
 		end
 	end
-	lvl[hh-1].f=nil
-	lvl[hh-1].d=nil
-	lvl[hh-2].f=nil
-	lvl[hh-2].d=nil
+	zap(lvl[hh-1])
+	zap(lvl[hh-2])
 	n_laser(lvl[hh-3])
 	n_laser(lvl[hh-4])
 	local l=lvl[hh+8]
