@@ -235,6 +235,15 @@ function smka(x,y,r)
 	add(smk,{x=x,y=y,cr=0,r=r})
 end
 
+function maxexp()
+	local me=-1
+	for e in all(exp) do
+		if (e.r>0 and e.y+e.r>me) me=e.y+e.r
+	end
+	if (me<0) return false
+	return me\8
+end
+
 function expm()
 	local nexp={}
 	for e in all(exp) do
@@ -486,12 +495,12 @@ end
 local snap={}
 
 function mksnap(g)
+	if ship.crash then
+		return
+	end
 	if g>max_gw then
 		max_gw=g
 		dset(0,g)
-	end
-	if ship.crash then
-		return
 	end
 	ship.gw=g
 	snap={}
@@ -1093,11 +1102,25 @@ function mklevel(w,h,hh,seed)
 	end
 //printh(#gates)
 end
-
+local thrust=0
 function cam()
 	local d=abs(cam_y-yy)
+	local v=cos(0.25+ship.v*0.25)
+	if ship.t then
+		if(thrust<0)thrust=0
+		thrust+=1
+	else
+		if(thrust>0)thrust=0
+		thrust-=1
+	end
 	if yy~=cam_y then
-		if d>1 then d=1 end
+		if d>1 then
+			if abs(thrust)<30 then
+				d=clamp(d/8,0,1)
+			else
+				d=1
+			end
+		end
 		if cam_y>yy then
 			yy+=d
 		else
@@ -1105,7 +1128,6 @@ function cam()
 		end
 		if yy<-120 then yy=-120 end
 	end
-	local v=cos(0.25+ship.v*0.25)
 	if not ship.explode then
 		if ship.crash then
 			cam_y=(ship.y-48)
@@ -1114,7 +1136,7 @@ function cam()
 		end
 	end
 end
-function clip(v,m,x)
+function clamp(v,m,x)
 	if (v<m)v=m
 	if (v>x)v=x
 	return v
@@ -1177,6 +1199,7 @@ function endm()
 		cam_y=ship.y-100+4*sin(ship.v)
 		yy=cam_y
 		ship.t=true
+		ship.tx=0
 		sfx(1)
 	end
 	if theend==true then theend=0 end
@@ -1186,12 +1209,12 @@ end
 function shipm()
 	if (gameover or (theend and theend>200)) and (btnp(4) or btnp(5)) then
 		fadeout(function()
-			lives=5
-			restart()
-			title=true
 			if not theend then
 				music(0,2000)
 			end
+			lives=5
+			restart()
+			title=true
 		end)
 		return
 	end
@@ -1294,7 +1317,7 @@ function shipm()
 		ship.dshot=20
 	end
 	if not ship.crash and ship.dshot>0 then ship.dshot-=1 end
-	ship.h=clip(ship.h,-1,1)
+	ship.h=clamp(ship.h,-1,1)
 	if (btn(2) or btn(5) or both) and ship.f>0 and not ship.crash then
 		ship.v-=handl
 		ship.t=true
@@ -1316,7 +1339,7 @@ function shipm()
 		ship.v+=0.01
 	end
 	ship.v+=0.01
-	ship.v=clip(ship.v,-1,1)
+	ship.v=clamp(ship.v,-1,1)
 	shipcol()
 	if lcol(ship.x,ship.y,8,4) or
 		ecol(ship.x,ship.y,8,4,ship) then
@@ -1337,7 +1360,9 @@ function _update60()
 		cam()
 		return
 	end
-	for y=1,19 do
+	local me=(maxexp() or yy\8)
+	me=max(18,me-yy\8)
+	for y=1,me do
 		local v=lvl[y+yy\8]
 		if v.f then
 			v:f()
@@ -1757,7 +1782,7 @@ function _draw()
 		end
 		y+=8
 		print("⬆️+⬇️ random world",x+32,y,13)
-		print("v1.0",112,122,15)
+		print("v1.0b",112,122,15)
 //		print("hugeping presents",32,0)
 		if hiscore>0 then
 			local h="hi score "..hiscore
