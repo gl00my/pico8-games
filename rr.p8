@@ -1317,13 +1317,13 @@ function shipm()
 	end
 	local both=btn(0) and btn(1)
 	if not both and btn(0) and ship.f>0 and not ship.crash then
-		ship.h-=handl
 		if (ship.h>0)ship.h*=frict
+		ship.h-=handl
 		ship.tx=-1
 		ship.f-=fuelr
 	elseif not both and btn(1) and ship.f>0 and not ship.crash then
-		ship.h+=handl
 		if (ship.h<0)ship.h*=frict
+		ship.h+=handl
 		ship.tx=1
 		ship.f-=fuelr
 	else
