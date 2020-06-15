@@ -189,7 +189,7 @@ function lasm()
 		l.x+=l.dx
 		l.y+=l.dy
 		local _,y=tos(l.x,l.y)
-		if y>128+16 or y<0 and l.dy!=0 then
+		if y>128+16 or y<-16 then
 			l.v.shot=false
 		elseif not mmcol(l.x,l.y) then
 			add(nlas,l)
@@ -1813,7 +1813,7 @@ function _draw()
 		else
 			print("⬇️ random world",x+36,y,13)
 		end
-		print("v1.1",112,122,15)
+		print("v1.2",112,122,15)
 //		print("hugeping presents",32,0)
 		if hiscore>0 then
 			local h="hi score "..hiscore
