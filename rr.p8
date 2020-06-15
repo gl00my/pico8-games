@@ -23,6 +23,9 @@ local save_seed
 local hiscore=0
 local max_gw=0
 local handl=0.03
+local frict=0.9
+local frictv=0.99
+local gravity=0.01
 local fuelr=0.0006
 local r16=12
 local gameover=false
@@ -1314,7 +1317,7 @@ function shipm()
 		ship.tx=1
 		ship.f-=fuelr
 	else
-		ship.h*=0.90
+		ship.h*=frict
 		ship.tx=0
 	end
 	if ship.f<0.25 and tm%60==1 and not ship.crash then
@@ -1333,7 +1336,7 @@ function shipm()
 		ship.f-=fuelr
 	else
 		ship.t=false
-		ship.v*=0.99
+		ship.v*=frictv
 	end
 	if ship.t or ship.tx!=0 then
 		sfx(1)
@@ -1345,9 +1348,9 @@ function shipm()
 		if y<-128 then ship.t=false ship.v=0 end
 	end
 	if not ship.t then
-		ship.v+=0.01
+		ship.v+=gravity
 	end
-	ship.v+=0.01
+	ship.v+=gravity
 	ship.v=clamp(ship.v,-1,1)
 	shipcol()
 	if lcol(ship.x,ship.y,8,4) or
