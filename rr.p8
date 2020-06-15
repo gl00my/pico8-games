@@ -3,6 +3,10 @@ version 27
 __lua__
 --reverse raid
 --ny hugeping
+local exp={}
+local parts={}
+local las={}
+
 function ship_crash()
 	ship.crash=ship.h
 	if ship.h>0 then
@@ -121,6 +125,10 @@ function rnorm(cur,prev)
 end
 local started=false
 function restart(seed)
+	exp={}
+	parts={}
+	las={}
+
 	gameover=false
 	theend=false
 	target=0
@@ -165,7 +173,6 @@ function d_mine(v)
 	local x,y=tos(v.pos,v.yy)
 	spr(32+tm\16%2,x-4,y-4,1,1,v.dir>0)
 end
-local las={}
 function lasd()
 	for l in all(las) do
 		local x,y=tos(l.x,l.y)
@@ -197,7 +204,6 @@ function lasm()
 	las=nlas
 end
 
-local exp={}
 function ecol(x,y,w,h,v)
 	if v and v.nc then return end
 	for e in all(exp) do
@@ -1261,14 +1267,16 @@ function shipm()
 					restart(flr(rnd(16384)))
 			end)
 		elseif btnp(4) or btnp(5) then
-			title=false //hack
+			title=false
 			ship.v=0
 			ship.h=0
 			music(-1,2000)
-//			fadeout(function()
-//				f_end()
-//			theend=0
-//			end)
+--[[ --hack
+			fadeout(function()
+				f_end()
+				theend=0
+			end)
+--]]
 		else
 			ship.y-=sin(ship.v)*rnd(0.2)
 			ship.x-=cos(ship.h)*rnd(0.1)
@@ -1310,10 +1318,12 @@ function shipm()
 	local both=btn(0) and btn(1)
 	if not both and btn(0) and ship.f>0 and not ship.crash then
 		ship.h-=handl
+		if (ship.h>0)ship.h*=frict
 		ship.tx=-1
 		ship.f-=fuelr
 	elseif not both and btn(1) and ship.f>0 and not ship.crash then
 		ship.h+=handl
+		if (ship.h<0)ship.h*=frict
 		ship.tx=1
 		ship.f-=fuelr
 	else
@@ -1375,7 +1385,7 @@ function _update60()
 	me=max(18,me-yy\8+1)
 	for y=1,me do
 		local v=lvl[y+yy\8]
-		if v.f then
+		if v.f and not title then
 			v:f()
 		end
 		for b in all(v.brk) do
@@ -1392,7 +1402,6 @@ end
 function tos(x,y)
 	return x,y-yy
 end
-parts={}
 
 function partsm()
 	local np={}
@@ -1659,10 +1668,17 @@ function starsd()
 		end
 		for s in all(stars) do
 			pset(s.x,s.y,s.c)
+			if (theend and theend>180)s.y+=(s.c/8)
+			if s.y>128 then
+				s.x=rnd(128)
+				s.y=-rnd(16)
+			end
 		end
 		pal(14,0)
 //		spr(68,100,(y-24)*0.7,2,2)
-		spr(68,100,40,2,2)
+		if not theend then
+			spr(68,100,40,2,2)
+		end
 		pal(15,0)
 end
 function paint(xoff,yoff,y,col)
@@ -1797,7 +1813,7 @@ function _draw()
 		else
 			print("⬇️ random world",x+36,y,13)
 		end
-		print("v1.0",112,122,15)
+		print("v1.1",112,122,15)
 //		print("hugeping presents",32,0)
 		if hiscore>0 then
 			local h="hi score "..hiscore
