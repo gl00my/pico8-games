@@ -6,6 +6,8 @@ __lua__
 local exp={}
 local parts={}
 local las={}
+local last_gate=15
+local lvl_h=3000
 
 function ship_crash()
 	ship.crash=ship.h
@@ -132,7 +134,7 @@ function restart(seed)
 	gameover=false
 	theend=false
 	target=0
-	mklevel(16,16,3000,seed)
+	mklevel(16,16,lvl_h,seed)
 	ship={score=0,dshot=0,f=1,x=64,y=-110,g=0,v=0,h=0,t=0,tx=0}
 	yy,cam_y=ship.y,ship.y
 	cam()
@@ -144,7 +146,7 @@ function _init()
 	music(0,2000)
 	if cartdata("hgpgrevraid") then
 		max_gw=dget(0) or 0
-//		max_gw=15
+//		max_gw=last_gate
 		hiscore=dget(1) or 0
 		save_seed=dget(2)
 		if (save_seed==0)save_seed=false 
@@ -550,7 +552,7 @@ end
 function restore(gw)
 	ship={}
 	if not gw then
-		mklevel(16,16,3000,save_seed)
+		mklevel(16,16,lvl_h,save_seed)
 	else
 		for g in all(gates) do
 			rgate(g,true)
@@ -806,7 +808,7 @@ function mklevel(w,h,hh,seed)
 		dist+=1
 		if t~=5 and t~=0 then
 		
-		if dist>128 and gate_nr<14 then
+		if dist>128 and gate_nr<last_gate-1 then
 			t=0
 			cland=0
 		elseif y%h==0 and t~=5 then
@@ -885,8 +887,7 @@ function mklevel(w,h,hh,seed)
 			if dist==0 then
 //				printh(gate_nr.." "..y)
 				t=1
-				if gate_nr>=14 then
-//					printh(gate_nr)
+				if gate_nr>=last_gate-1 then
 					t=5
 				end
 			end
