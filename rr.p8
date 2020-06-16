@@ -85,14 +85,14 @@ function rnd8()
 	r8|=(t&1)
 	return r8
 end
-
+--[[
 function rnd16p(v)
 	local s=r16
 	r16=v
 	irnd16()
 	r16=s
 end
-
+--]]
 local lvl={}
 
 function lnorm(cur,prev)
@@ -1221,7 +1221,7 @@ function endm()
 		sfx(1)
 	end
 	if theend==true then theend=0 end
-	theend+=1
+	if (theend<500)theend+=1
 end
 
 function shipm()
