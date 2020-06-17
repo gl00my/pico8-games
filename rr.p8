@@ -401,9 +401,10 @@ function f_tank(v)
 			sfx(7)
 		end
 	end
-	
-	f_hit(v)
-	f_lcol(v,4,4,0,0,6)
+	if v.pos>-8 and v.pos<132 then
+		f_hit(v)
+		f_lcol(v,4,4,0,0,6)
+	end
 end
 
 function d_tank(v)
@@ -1240,7 +1241,7 @@ function shipm()
 		endm()
 		return
 	end
-	if title then
+	if title and not fade then
 		if btnp(0) then
 			ship.gw-=1
 			if ship.gw<0 then
